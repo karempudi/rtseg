@@ -1,0 +1,33 @@
+[build-system]
+required = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rtseg"
+authors = [
+    {name = "Praneeth Karempudi", email = "praneeth.karempudi@gmail.com"},
+]
+version = "0.0.1"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT-License"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+
+dependencies = [
+    "numpy",
+    "requests",
+    "torch",
+    "torchvision",
+    "scikit-image",
+    "docker",
+]
+
+[project.optional-dependencies]
+linting = ["mypy", "ruff", "pre-commit"]
+
+[tool.setuptools.packages.find]
+where = ["rtseg"]
+include = ["rtseg*"]
+exclude = ["tests*"]
