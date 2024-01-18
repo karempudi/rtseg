@@ -1,5 +1,5 @@
 [build-system]
-required = ["setuptools"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -26,8 +26,7 @@ dependencies = [
 
 [project.optional-dependencies]
 linting = ["mypy", "ruff", "pre-commit"]
+testing = ["pytest"]
 
-[tool.setuptools.packages.find]
-where = ["rtseg"]
-include = ["rtseg*"]
-exclude = ["tests*"]
+[tool.setuptools.packages]
+find = {}
