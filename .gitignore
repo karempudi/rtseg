@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# data directory
+data/
+notebooks/
 # Distribution / packaging
 .Python
 build/

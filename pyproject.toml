@@ -27,6 +27,7 @@ dependencies = [
 [project.optional-dependencies]
 linting = ["mypy", "ruff", "pre-commit"]
 testing = ["pytest"]
+notebooks = ["jupyter", "notexbook-theme"]
 
 [tool.setuptools.packages]
 find = {}
