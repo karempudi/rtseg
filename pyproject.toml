@@ -22,6 +22,8 @@ dependencies = [
     "torchvision",
     "scikit-image",
     "docker",
+    "edt",
+    "opencv-python",
 ]
 
 [project.optional-dependencies]
