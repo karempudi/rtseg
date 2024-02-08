@@ -128,6 +128,6 @@ def save_sdf_vf():
 
 if __name__ == "__main__":
     # plot vector fields of an image in the resources direcotry
-    import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt # type: ignore
     fig, ax = plt.subplots()
     plt.show()
