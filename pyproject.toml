@@ -24,12 +24,16 @@ dependencies = [
     "docker",
     "edt",
     "opencv-python",
+    "scikit-learn",
+    "ncolor",
+    "dbscan",
 ]
 
 [project.optional-dependencies]
 linting = ["mypy", "ruff", "pre-commit"]
 testing = ["pytest"]
 notebooks = ["jupyter", "notexbook-theme"]
+training = ["tensorboard"]
 
 [tool.setuptools.packages]
 find = {}
