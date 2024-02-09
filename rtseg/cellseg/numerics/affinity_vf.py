@@ -1,6 +1,10 @@
 
+import pathlib
+from pathlib import Path
 import torch.nn.functional as F
 import torch
+import numpy as np
+from skimage.io import imread
 
 
 def affinity_vector_field(instance_mask, kernel_size, device = "cpu"):
@@ -107,5 +111,51 @@ def affinity_to_vf(target, device = "cpu"):
     return vf.float()
 
 
-def save_affinity_vf():
-    pass
+def save_affinity_vf(labels_dir, save_dir, kernel_size: int,
+                labels_ext: str = '.png', vf_delimiter: str = "_af"):
+    """
+    For each image in the labels_dir, calculate vector fields and save them as
+    .npy files int the save_dir.
+
+    Args:
+        labels_dir (str | pathlib.Path): directory containing labels images where
+            each image has cells labelled (1, 2, 3, ... N) and background 0.
+
+        save_dir (str | pathlib.Path): director to save *.npy vector field file
+            for each of the image in the labels_dir. If an image has shape (H, W),
+            it's vector field will have shape (2, H, W)
+
+        kernel_size (int): The size of the finite difference gaussian kernel
+           used to compute the numeric gradient of the SDF. 
+
+        labels_ext (str): file extension of the labels files. '.png' | '.tiff' | '.tif' 
+
+        vf_delimiter (str): append the vector field files with a delimiter when
+                        saving. actual filename will be saved as
+                        'labels_vf_delimiter_kernel_size.npy'
+    Returns:
+        None
+    """
+    if isinstance(labels_dir, str):
+        labels_dir = Path(labels_dir)
+    assert isinstance(labels_dir, pathlib.Path), "`labels_dir` should be str | pathlib.Path"
+
+    if isinstance(save_dir, str):
+        labels_dir = Path(save_dir)
+    assert isinstance(save_dir, pathlib.Path), "`save_dir` should be str | pathlib.Path"
+
+    labels_imgs_filenames = list(labels_dir.glob("*" + labels_ext))
+    labels_imgs_filenames = sorted(labels_imgs_filenames)
+
+    for i, filename in enumerate(labels_imgs_filenames, 0):
+        # read image 
+        image = imread(filename).astype('float32')
+        labels = torch.from_numpy(image)[None, None, :]
+        # compute sdf vf
+        vf = affinity_vector_field(labels, kernel_size=kernel_size, device="cpu") 
+        # save the vf to file
+        save_filename = save_dir / Path(filename.stem + vf_delimiter + '_' + str(kernel_size) + ".npy")
+        with open(save_filename, "wb") as f:
+            np.save(f, vf.numpy()[0])
+        print(f"Completed {i}/ {len(labels_imgs_filenames)} -- {filename.name}", end='\r', flush=True)
+    return None

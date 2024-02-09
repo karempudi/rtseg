@@ -27,13 +27,15 @@ dependencies = [
     "scikit-learn",
     "ncolor",
     "dbscan",
+    "tqdm",
+    "types-tqdm",
 ]
 
 [project.optional-dependencies]
 linting = ["mypy", "ruff", "pre-commit"]
 testing = ["pytest"]
 notebooks = ["jupyter", "notexbook-theme"]
-training = ["tensorboard"]
+training = ["tensorboard", "ml_collections"]
 
 [tool.setuptools.packages]
 find = {}
