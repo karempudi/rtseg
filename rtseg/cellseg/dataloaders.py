@@ -5,6 +5,7 @@ from skimage.io import imread
 from torch.utils.data import Dataset
 from pathlib import Path
 from typing import List
+import matplotlib.pyplot as plt # type: ignore
 
 
 class PhaseContrast(Dataset):
@@ -44,14 +45,17 @@ class PhaseContrast(Dataset):
             
         if isinstance(phase_dir, str):
             self.phase_dir = Path(phase_dir)
+        self.phase_dir = phase_dir
         assert isinstance(self.phase_dir, pathlib.Path), "`phase_dir` needs to be (str | pathlib.Path)"
 
         if isinstance(labels_dir, str):
             self.labels_dir = Path(labels_dir)
+        self.labels_dir = labels_dir
         assert isinstance(self.labels_dir, pathlib.Path), "`labels_dir` needs to be (str | pathlib.Path)"
 
         if isinstance(vf_dir, str):
             self.vf_dir = Path(vf_dir)
+        self.vf_dir = vf_dir
         assert isinstance(self.vf_dir, pathlib.Path), "`vf_dir` needs to be (str | pathlib.Path)"
 
         self.transforms = transforms
@@ -59,12 +63,16 @@ class PhaseContrast(Dataset):
         self.phase_filenames = list(self.phase_dir.glob("*" + phase_format))
 
         # construction using phase_filenames
-        self.labels_filenames: List[str | pathlib.Path] = []
+        self.labels_filenames: List[pathlib.Path] = [ labels_dir / Path(filename.stem + labels_delimiter + labels_format)
+                                                             for filename in self.phase_filenames]
 
+        self.vf = False
         if vf:
             self._getitem = self._get_image_mask_vf
+            self.vf = vf
             # construction using phase_filenames
-            self.vf_filenames: List[str | pathlib.Path] = []
+            self.vf_filenames: List[pathlib.Path] = [ vf_dir / Path(filename.stem + vf_delimiter + vf_format)
+                                                            for filename in self.labels_filenames]
 
         else:
             self._getitem = self._get_image_mask
@@ -84,6 +92,8 @@ class PhaseContrast(Dataset):
         if self.transforms is not None:
             image, mask, vf = self.transforms(image, mask, vf)
 
+        return image, mask, vf
+
     def _get_image_mask(self, idx):
         phase_filename = self.phase_filenames[idx]
         mask_filename = self.labels_filenames[idx]
@@ -93,7 +103,36 @@ class PhaseContrast(Dataset):
 
         if self.transforms is not None:
             image, mask = self.transforms(image, mask)
+        
+        return image, mask
    
     def __getitem__(self, idx):
         return self._getitem(idx)
+
+    def plot_item(self, idx):
+        if self.vf and (self.transforms is None):
+            nrows, ncols = 2, 2
+            fig, ax = plt.subplots(nrows=nrows, ncols=ncols)
+            image, mask, vf = self.__getitem__(idx)
+            ax[0, 0].imshow(image, cmap='gray')
+            ax[0, 0].set_title('Phase contrast')
+            ax[0, 1].imshow(mask)
+            ax[0, 1].set_title('Mask')
+            ax[1, 0].imshow(vf[0])
+            ax[1, 0].set_title('vf_x')
+            ax[1, 1].imshow(vf[1])
+            ax[1, 1].set_title('vf_y')
+            fig.suptitle(f'{self.phase_filenames[idx].name}')
+            plt.show()
+        elif (self.transforms is None):
+            nrows, ncols = 1, 2
+            fig, ax = plt.subplots(nrows=nrows, ncols=ncols)
+            image, mask = self.__getitem__(idx)
+            ax[0].imshow(image, cmap='gray')
+            ax[0].set_title('Phase contrast')
+            ax[1].imshow(mask)
+            ax[1].set_title('Mask')
+            fig.suptitle(f'{self.phase_filenames[idx].name}')
+            plt.show()
+
 

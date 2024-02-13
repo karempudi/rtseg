@@ -13,7 +13,7 @@ SOLVERS = {
     "runge_kutta": RungeKutta
 }
 
-def ivp_solver(vf, init_values, dx, n_steps, solver = "euler"):
+def ivp_solver(vf, init_values, dx, n_steps, solver = "euler", store_solutions: bool = True):
     """
     This function uses one of `SOLVERS` to solve the IVP given the inital
     values `init_values`, a step size `dx`, number of steps `n_steps`, and the
@@ -32,6 +32,11 @@ def ivp_solver(vf, init_values, dx, n_steps, solver = "euler"):
             vector field.
         solver (str): The solver to be used, you can find options in the above
             dictionary `SOLVERS` or `ivp_solvers.py`.
+        
+        store_solutions (bool): if True (default), the solver will store all the
+            intermediate solutions on the way to clustering and will return a list
+            whose last element is the final solution. Otherwise (False) returns
+            a list with only one element.
 
     Returns: 
         torch.Tensor: List containing discretized trajectories. list[-1] will
@@ -40,11 +45,14 @@ def ivp_solver(vf, init_values, dx, n_steps, solver = "euler"):
     """
     f_solver = SOLVERS[solver](vf)
 
-    points, _ = f_solver.step(init_values, dx)
+    points, _ = f_solver.step(init_values, dx) # type: ignore
 
     solutions = [points]
     for i in range(n_steps - 1):
-        points, _ = f_solver.step(points, dx)
-        solutions.append(points)
+        points, _ = f_solver.step(points, dx) # type: ignore
+        if store_solutions:
+            solutions.append(points)
+        else:
+            solutions[0] = points
 
     return torch.stack(solutions)
