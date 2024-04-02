@@ -93,6 +93,7 @@ def sdf_vector_field(labels, kernel_size, alpha=10, device="cpu"):
         torch.Tensor: The vector field of shape (2, H, W).
 
     """
+    assert labels.ndim == 3, "`labels` should have 3 dimensions"
     _, H, W = labels.shape
     pad     = kernel_size // 2
 

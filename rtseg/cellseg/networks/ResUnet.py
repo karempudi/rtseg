@@ -132,7 +132,7 @@ class ResUpsampleBlock(nn.Module):
             return x
         
 
-class SegNet(nn.Module):
+class ResUnet(nn.Module):
 
     def __init__(self, channels_by_scale: List[int], num_outputs: List = [1, 2, 1],
             upsample_type: str ='transpose_conv', feature_fusion_type: str ='concat'):

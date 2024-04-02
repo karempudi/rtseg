@@ -12,7 +12,7 @@ def affinity_vector_field(instance_mask, kernel_size, device = "cpu"):
     Computes the ground truth affinity vector field given an instance
     mask.
 
-    Kernel sizes from 11 - 19 seem to work well on the BPCIS dataset. 
+    Kernel sizes from 11 - 19 seem to work well on the BPCIS (phase contrast) dataset. 
 
     Args:
         instance_mask (torch.Tensor): Of shape (B, C, H, W).

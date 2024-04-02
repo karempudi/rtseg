@@ -1,8 +1,8 @@
-from rtseg.cellseg.network import SegNet
+from rtseg.cellseg.networks.ResUnet import ResUnet
 import torch
 
 def test_net_input_outputs():
-    net = SegNet(channels_by_scale=[1, 32, 64, 128],
+    net = ResUnet(channels_by_scale=[1, 32, 64, 128],
                  num_outputs=[1, 2, 1])
     image = torch.randn((1, 1, 1024, 1024))
     semantic_cells, vf_cells, semantic_channels = net(image)
