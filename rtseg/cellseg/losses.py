@@ -2,6 +2,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from rtseg.cellseg.numerics.interpolation.interpolate_vf import interpolate_vf
+from rtseg.cellseg.numerics.integration.integrate_vf import ivp_solver
 
 
 # Dice loss is mostly used for channel segmentation in our nets
@@ -152,19 +154,39 @@ class IVPLoss(nn.Module):
     
     def __init__(self, dx: float = 0.5, n_steps: int = 8, 
                     solver: str = 'euler', mode: str = 'bilinear_batched',
-                    device: str = 'cpu'):
+                    device: str | torch.device = 'cpu'):
         """
         Args:
-            dx (float): 
-            n_steps (int):
-            solver (str):
-            mode (str):
-            device (str):
+            dx (float): Numeric integration step size.
+            n_steps (int): Number of integration steps.
+            solver (str): Numeric integration solver. One of:
+                - "euler"
+                - "midpoint"
+                - "runge_kutta"
+            mode (str): The type of interpolation to do. One of:
+                - "bilinear_batched"
+                - "nearest_batched"
+            device (str): hardware device
 
         """
         super(IVPLoss, self).__init__()
         self.dx = dx 
-        
+        self.n_steps = n_steps
+        self.solver = solver
+        self.mode = mode
+        self.device = device
+
+    def _compute_init_values(self, shape):
+        B, C, *dims = shape
+
+        coords = [torch.arange(0, dim_value, device = self.device) for dim_value in dims]
+        mesh = torch.meshgrid(coords, indexing = "ij")
+
+        init_shape = [B, 1] + ([1] * len(dims))
+        init_values = torch.stack(mesh[::-1], dim = 0)
+        init_values = init_values.repeat(init_shape)
+
+        return init_values 
 
     def _compute_batched_trajectories(self, vf):
         """
@@ -182,7 +204,20 @@ class IVPLoss(nn.Module):
             vf (torch.Tensor): of shape (B, 2, H, W)
         
         """
-        pass
+        init_values = self._compute_init_values(vf.shape)
+
+        # returns an interpolated vf, that you can call with points
+        vf = interpolate_vf(vf, mode=self.mode)
+
+        # store solutions as you do MSE between the trajectories taken
+        trajectories = ivp_solver(vf,
+                                  init_values=init_values,
+                                  dx=self.dx,
+                                  n_steps=self.n_steps,
+                                  solver=self.solver,
+                                  store_solutions=True)
+
+        return trajectories
 
     def forward(self, vf_pred: torch.Tensor, vf_true: torch.Tensor):
         """

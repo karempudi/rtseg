@@ -1,0 +1,95 @@
+
+Save:
+  directory: "/home/pk/Documents/rtseg/models/cellseg/checkpoints" # directory to save all the experiment runs
+  log_dir: "/home/pk/Documents/rtseg/models/cellseg/tensorboard_logs" # tensorboard logs directory
+
+Hardware:
+  device: 'cuda:0'
+
+Loss:
+  set: true
+
+Metrics:
+
+
+Checkpoints:
+  load: false
+  filename: None
+
+Dataset:
+  only_cells: True
+  Train:
+    directory: "/home/pk/Documents/rtseg/data/cellseg/omnipose"
+    phase_dir: "bacteria_train" # where the phase contrast images are
+    labels_dir: "train_masks" # where the labels are
+    vf_dir: "vf_train" # vector fields dir
+    vf: true # train for vector fields
+    labels_delimiter: '_masks'
+    vf_delimiter: '_vf_11' # extension you used to save 
+    transforms: "train"
+    phase_format: '.png'
+    labels_format: '.png'
+    vf_format: '.npy'
+    validation_percentage: 0.2
+  Test:
+    directory: "/home/pk/Documents/rtseg/data/cellseg/omnipose"
+    phase_dir: "bacteria_test"
+    labels_dir: "test_masks"
+    vf_dir: "vf_test"
+    vf: false # no need 
+    labels_delimiter: '_masks' 
+    vf_delimiter: '_vf_11'
+    transforms: "eval"
+    phase_format: '.png'
+    labels_format: '.png'
+    vf_format: '.npy' # no need
+  
+Training:
+  model: "ResUnet"
+
+  model_params:
+    channels_by_scale:
+      - 1
+      - 32
+      - 64
+      - 128
+      - 256
+    num_outputs:
+      - 1
+      - 2
+      - 1
+    upsample_type: 'transpose_conv'
+    feature_fusion_type: 'concat'
+    skip_channel_seg: true
+
+  optimizer:
+    lr: 0.0007
+
+  losses:
+    mse_loss:  # MSE loss between vector fields predicted and true
+      apply: true
+    ivp_loss: # comparing trajectories taken during integration
+      apply: true
+      dx: 0.25
+      n_steps: 8
+      solver: 'euler'
+    bce_loss:
+      apply: false
+    tversky_loss:
+      apply: true
+      alpha: 0.50
+      beta: 0.50
+      from_logits: true
+
+
+  nEpochs: 500
+  batch_size: 16
+  num_workers: 4
+  val_batch_size: 4
+
+  
+
+Evaluation:
+  eval_every: 3
+  batch_size: 1 # Always one as data shapes are different.
+

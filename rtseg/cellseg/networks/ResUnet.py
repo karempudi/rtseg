@@ -135,7 +135,8 @@ class ResUpsampleBlock(nn.Module):
 class ResUnet(nn.Module):
 
     def __init__(self, channels_by_scale: List[int], num_outputs: List = [1, 2, 1],
-            upsample_type: str ='transpose_conv', feature_fusion_type: str ='concat'):
+            upsample_type: str ='transpose_conv', feature_fusion_type: str ='concat',
+            skip_channel_seg: bool = False):
         """
         A U-net architecture with residual blocks
 
@@ -154,7 +155,8 @@ class ResUnet(nn.Module):
         self.hparams = SimpleNamespace(channels_by_scale=channels_by_scale,
                                        num_outputs=num_outputs,
                                        upsample_type=upsample_type,
-                                       feature_fusion_type=feature_fusion_type)
+                                       feature_fusion_type=feature_fusion_type,
+                                       skip_channel_seg=skip_channel_seg)
         # create the network
         self._create_network()
         # initalize some layers
@@ -195,8 +197,8 @@ class ResUnet(nn.Module):
                                                c_out=self.hparams.num_outputs[0])
         self.vf_block = FinalBlock(c_in=self.hparams.channels_by_scale[1],
                                 c_out=self.hparams.num_outputs[1])
- 
-        self.semantic_channels_block = FinalBlock(c_in=self.hparams.channels_by_scale[1],
+        if self.hparams.skip_channel_seg is False:
+            self.semantic_channels_block = FinalBlock(c_in=self.hparams.channels_by_scale[1],
                                                   c_out=self.hparams.num_outputs[2])
 
     def _init_params(self):
@@ -222,9 +224,12 @@ class ResUnet(nn.Module):
 
         #x = self.last_conv(x) 
 
-        semantic_channels = self.semantic_channels_block(x)
         semantic_cells = self.semantic_cells_block(x)
         vf = self.vf_block(x)
 
-        return semantic_cells, vf, semantic_channels
+        if self.hparams.skip_channel_seg is False:
+            semantic_channels = self.semantic_channels_block(x)
+            return semantic_cells, vf, semantic_channels
+
+        return semantic_cells, vf
 

@@ -48,11 +48,16 @@ class Compose:
         self.layers = layers
 
     def __call__(self, image, mask, vf = None):
-        for layer in self.layers:
-            image, mask, vf = layer(image, mask, vf)
-        
-        return image, mask, vf
+        if vf is None:
+            for layer in self.layers:
+                image, mask = layer(image, mask)
+            return image, mask
+        else:
+            for layer in self.layers:
+                image, mask, vf = layer(image, mask, vf)
 
+            return image, mask, vf
+ 
 class RandomCrop:
     def __init__(self, crop_h, crop_w):
         self.crop_h = crop_h
@@ -120,8 +125,10 @@ class ToFloat:
 
         if vf is not None: 
             vf = vf.astype(np.float32)
+            return image, mask, vf
+        else:
+            return image, mask
 
-        return image, mask, vf
 
 
 class HorizontalFlip:
@@ -170,6 +177,9 @@ class AddDimension:
 
         image = image[None]
         mask = mask[None]
+
+        if vf is None:
+            return image, mask
 
         return image, mask, vf
 

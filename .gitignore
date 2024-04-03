@@ -9,6 +9,7 @@ __pycache__/
 # data directory
 data/
 notebooks/
+models/
 # Distribution / packaging
 .Python
 build/

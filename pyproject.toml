@@ -29,7 +29,12 @@ dependencies = [
     "dbscan",
     "tqdm",
     "types-tqdm",
+    "tensorboard",
 ]
+
+[project.scripts]
+rtseg-segtrain = "rtseg.cellseg.train:main"
+
 
 [project.optional-dependencies]
 linting = ["mypy", "ruff", "pre-commit"]
