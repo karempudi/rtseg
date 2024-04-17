@@ -4,10 +4,10 @@ import numpy as np
 from pathlib import Path
 from tqdm import tqdm
 from datetime import datetime
-from rtseg.utils.param_io import load_params
+from rtseg.utils.param_io import load_params, save_params
 import yaml
 from rtseg.cellseg.networks import model_dict
-from rtseg.cellseg.utils.checkpoints import load_checkpoint
+from rtseg.cellseg.utils.checkpoints import load_checkpoint, save_checkpoint
 from rtseg.cellseg.dataloaders import PhaseContrast
 from rtseg.cellseg.utils.transforms import transforms
 from rtseg.cellseg.losses import IVPLoss, TverskyLoss
@@ -80,6 +80,9 @@ def train_model(param_file: str | Path, log_dir: str | Path = '',
     print(yaml.dump(param.to_dict()))
     print("------------------------")
 
+    # save parameters to expt dict
+    save_params(expt_dir / Path('training_params.yaml'), param)
+
     # device to train
     device = torch.device(param.Hardware.device)
 
@@ -133,11 +136,11 @@ def train_model(param_file: str | Path, log_dir: str | Path = '',
                           drop_last=False,
                           num_workers=param.Training.num_workers)
  
-    #test_dl = DataLoader(train_ds, batch_size=param.Training.batch_size,
+    #test_dl = DataLoader(test_ds, batch_size=param.Testing.batch_size,
     #                      pin_memory=False,
-    #                      shuffle=True,
-    #                      drop_last=True,
-    #                      num_workers=param.Training.num_workers)
+    #                      shuffle=False,
+    #                      drop_last=False,
+    #                      num_workers=param.Testing.num_workers)
  
     # Model
     model = model_dict[param.Training.model]
@@ -210,6 +213,16 @@ def train_model(param_file: str | Path, log_dir: str | Path = '',
         running_train_loss_mean = np.mean(running_train_loss)
         logger.add_scalar_dict('train/', {'loss': running_train_loss_mean}, global_step=batches_done)
 
+        if (e+1) % param.Training.save_checkpoints.every == 0:
+            # save checkpoint file
+            checkpoint = {
+                "optimizer_state_dict" : optimizer.state_dict(), # type: ignore
+                "model_state_dict" : model.state_dict(), # type: ignore
+                "epoch": e
+            }
+            filename = Path(expt_dir) / Path('checkpoint_train.pt')
+            save_checkpoint(filename, checkpoint)
+
         # --------------------------------------------
         # validation loop
         running_val_loss = []
@@ -239,20 +252,15 @@ def train_model(param_file: str | Path, log_dir: str | Path = '',
 
         if running_val_loss_mean < best_val_loss:
             best_val_loss = running_val_loss_mean
+            model_path = expt_dir / Path('model_val.pt')
             # write the model with the best val loss to disk
+            torch.save(model.state_dict(), model_path) # type: ignore
+            
 
 
         # --------------------------------------------
         #logger.add_scalar_dict("loss_cmp/", {'train': running_train_loss_mean,
         #                                                   'val': running_val_loss_mean}, e + 1)
-
-        # Eval/test loop
-        #if e % param.Evaluation.eval_every == 0:
-        #    print(f"Eval at epoch: {e}")
-        #    for j in tqdm(range(10000)):
-        #        time.sleep(0.0005)
-
-
 
 def main():
     print("Segmentaiton training ....")

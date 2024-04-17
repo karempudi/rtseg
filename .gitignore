@@ -8,7 +8,7 @@ __pycache__/
 
 # data directory
 data/
-notebooks/
+# notebooks/
 models/
 # Distribution / packaging
 .Python

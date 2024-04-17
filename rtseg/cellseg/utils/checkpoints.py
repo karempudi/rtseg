@@ -22,7 +22,7 @@ def save_checkpoint(filename, checkpoint):
     if not filename.parent.exists():
         filename.parent.mkdir(exist_ok=True, parents=True) 
 
-    print(f"Saving checkpoing to : {str(filename)}")
+    #print(f"Saving checkpoing to : {str(filename)}")
     torch.save(checkpoint, filename)
     
 

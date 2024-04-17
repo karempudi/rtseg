@@ -28,6 +28,9 @@ def cluster(points, semantic, fast = True, eps = 2.2, min_samples = 15, snap_noi
     
 
     points = points.T
+    points = points.cpu()
+
+    semantic = semantic.cpu()
 
     if points.shape[0] == 0:
         return semantic

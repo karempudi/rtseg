@@ -19,16 +19,16 @@ Checkpoints:
 Dataset:
   only_cells: True
   Train:
-    directory: "/home/pk/Documents/rtseg/data/cellseg/omnipose"
-    phase_dir: "bacteria_train" # where the phase contrast images are
-    labels_dir: "train_masks" # where the labels are
-    vf_dir: "affinity_vf_train" # vector fields dir
+    directory: "/mnt/sda1/REALTIME/data/seg_unet/dual"
+    phase_dir: "phase" # where the phase contrast images are
+    labels_dir: "mask" # where the labels are
+    vf_dir: "vf11" # vector fields dir
     vf: true # train for vector fields
-    labels_delimiter: '_masks'
-    vf_delimiter: '_af_15' # extension you used to save 
+    labels_delimiter: ''
+    vf_delimiter: '_vf_11' # extension you used to save 
     transforms: "train"
-    phase_format: '.png'
-    labels_format: '.png'
+    phase_format: '.tif'
+    labels_format: '.tif'
     vf_format: '.npy'
     validation_percentage: 0.20
   Test:
@@ -63,7 +63,7 @@ Training:
     skip_channel_seg: true
 
   optimizer:
-    lr: 0.005
+    lr: 0.0003
 
   losses:
     mse_loss:  # MSE loss between vector fields predicted and true
@@ -84,7 +84,7 @@ Training:
     every: 50 # save model, optimizer state and epoch number every 10 epochs
 
 
-  nEpochs: 500
+  nEpochs: 50
   batch_size: 16
   num_workers: 4
   val_batch_size: 4

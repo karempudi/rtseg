@@ -189,12 +189,12 @@ train_transform = Compose([
     RandomCrop(320, 320),
     VerticalFlip(p = 0.25),
     HorizontalFlip(p = 0.25),
-    ToFloat(255),
+    ToFloat(65535),
 ])
 
 eval_transform = Compose([
     AddDimension(),
-    ToFloat(255)
+    ToFloat(65535)
 ])
 
 transforms = {
