@@ -30,6 +30,8 @@ dependencies = [
     "tqdm",
     "types-tqdm",
     "tensorboard",
+    "matplotlib",
+    "jupyter",
 ]
 
 [project.scripts]
@@ -37,7 +39,7 @@ rtseg-segtrain = "rtseg.cellseg.train:main"
 
 
 [project.optional-dependencies]
-linting = ["mypy", "ruff", "pre-commit"]
+linting = ["mypy", "ruff", "pre-commit", "types-PyYAML"]
 testing = ["pytest"]
 notebooks = ["jupyter", "notexbook-theme"]
 training = ["tensorboard", "ml_collections"]
