@@ -32,6 +32,7 @@ dependencies = [
     "tensorboard",
     "matplotlib",
     "jupyter",
+    "pyside6",
 ]
 
 [project.scripts]
@@ -46,3 +47,6 @@ training = ["tensorboard", "ml_collections"]
 
 [tool.setuptools.packages]
 find = {}
+
+
+
