@@ -5,6 +5,7 @@ import edt # type: ignore
 import math
 from numpy.linalg import lstsq
 import matplotlib.pyplot as plt
+from skimage.measure import regionprops
 
 def compute_boundary_pixels(image, distance_threshold: int = 3):
     """
@@ -38,10 +39,11 @@ def compute_backbone_coordinates(fit_coeff, img_size):
     y_data = fit_coeff[0] * x_data**2 + fit_coeff[1] * x_data + fit_coeff[2]
     if abs(fit_coeff[0]) < 1e-4 and round(y_data[0]) == round(y_data[-1]):
         fit_coord = np.vstack((np.arange(0, img_size[1]), round(y_data[0]) * np.ones((img_size[1],)))).T
+        fit_coord = fit_coord.astype('int')
     else:
         y_data_round = np.round(y_data)
         stat_pt = -fit_coeff[1] / (2 * fit_coeff[0]) #  ax^2 + bx + c = 0 --> -b/2a is the point where derivative==0
-        if stat_pt > -0.5 and stat_pt < img_size[1]:
+        if stat_pt > -0.5 and stat_pt < img_size[1] - 1:
             round_stat_pt_val = round(fit_coeff[0] * (stat_pt**2) + fit_coeff[1] * stat_pt + fit_coeff[2])
             round_stat_pt = round(stat_pt)
             upp_bound = np.zeros((img_size[1]),) # upper bound defined for each pixel on the x-axis
@@ -60,10 +62,10 @@ def compute_backbone_coordinates(fit_coeff, img_size):
             else:
                 upp_bound[0:round_stat_pt] = y_data_round[1:round_stat_pt+1]
                 upp_bound[round_stat_pt] = round_stat_pt_val
-                upp_bound[round_stat_pt+1:] = y_data_round[round_stat_pt:-1]
+                upp_bound[round_stat_pt+1:] = y_data_round[round_stat_pt+1:-1]
                 low_bound[0:round_stat_pt] =  y_data_round[0:round_stat_pt]
                 low_bound[round_stat_pt] = max(y_data_round[round_stat_pt:round_stat_pt+2])
-                low_bound[round_stat_pt+1:] = y_data_round[round_stat_pt+1:]
+                low_bound[round_stat_pt+1:] = y_data_round[round_stat_pt+2:]
         else:
             if (fit_coeff[0] > 0 and stat_pt > img_size[1]-1) or (fit_coeff[0] < 0 and stat_pt < -0.5):
                 upp_bound = y_data_round[:-1]
@@ -202,7 +204,8 @@ def regionprops_custom(label_img, dots = None, dilation_threshold:int = 3):
             3. poles: Each cell has two poles, numpy array of shape (2, 2).
                 [[x1, y1], [x2, y2]]. We are using image coordinates and not
                 row colums.
-            4. dots: a list of dots where each element is a dictionary
+            4. boundary_pixels
+            5. dots: a list of dots where each element is a dictionary
                 {
                     'global_coordinate': (x, y) from the origin of the image (0, 0),
                     'local_coordinate': (x, y) from the origin of the labelled blob
@@ -211,7 +214,11 @@ def regionprops_custom(label_img, dots = None, dilation_threshold:int = 3):
                         the backbone and poles 
                 }
     """
-    pass
+    props = regionprops(label_img, extra_properties=(compute_fit_coeff_poles_arc_length,))
+    for cellprop in props:
+        #print(f"Cell no: {cellprop.label}")
+        cellprop.fit_coeff, cellprop.arc_length, cellprop.poles, cellprop.boundary_pixels = cellprop.compute_fit_coeff_poles_arc_length
+    return props
 
 
 
