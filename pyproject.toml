@@ -33,10 +33,12 @@ dependencies = [
     "matplotlib",
     "jupyter",
     "pyside6",
+    "pika"
 ]
 
 [project.scripts]
 rtseg-segtrain = "rtseg.cellseg.train:main"
+rtseg-dotdetect = "rtseg.forkplot_app:main"
 
 
 [project.optional-dependencies]
