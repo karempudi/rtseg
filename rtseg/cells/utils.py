@@ -94,6 +94,35 @@ def compute_backbone_coordinates(fit_coeff, img_size):
     
     return fit_coord
 
+def compute_arc_length(fit_coeff, first_point, last_point):
+    """
+    Computes the arc length between the first point and last point
+    on the quadradtic curve used to fit the backbone. For cell length
+    the first and last point will be the poles of the cells.
+    For internal x coordinate, you will use one pole.
+
+    Args:
+        fit_coeff: 3 values corresponding to the coefficients of 
+            the quadratic used to fit the backbone
+        first_point: x,coordinate of the first point
+        last_point: x coordinate of the last point
+    
+    Returns:
+        arc_length: float
+
+    """
+    x_0 = first_point
+    x_end = last_point
+    if abs(fit_coeff[0]) > 1e-10:
+        transf_points = (fit_coeff[0] / abs(fit_coeff[0])) * np.array([2*fit_coeff[0]*x_0 + fit_coeff[1] , 2*fit_coeff[0]*x_end + fit_coeff[1]])
+        sqrt_exp = np.sqrt(1.0 + transf_points**2)
+        arc_length = abs(np.diff(transf_points * sqrt_exp + np.log(transf_points + sqrt_exp)) / (4 * abs(fit_coeff[0])))
+    else:
+        fit_points = [fit_coeff[1] * x_0 + fit_coeff[2], fit_coeff[1] * x_end + fit_coeff[2]]
+        arc_length = math.sqrt((x_0 - x_end) ** 2 + (fit_points[0] - fit_points[1]) ** 2)
+
+    return arc_length
+
 def compute_fit_coeff_poles_arc_length(image, distance_threshold: int=3,
                 weight_quadratic:int = 3, plot:bool = False):
     """
@@ -156,16 +185,8 @@ def compute_fit_coeff_poles_arc_length(image, distance_threshold: int=3,
     poles[:, 0] = [x_0, x_end]
     poles[:, 1] = fit_coeff[0] * poles[:, 0]**2 + fit_coeff[1] * poles[:, 0] + fit_coeff[2]
 
-
     # computing arc length
-    if abs(fit_coeff[0]) > 1e-10:
-        transf_points = (fit_coeff[0] / abs(fit_coeff[0])) * np.array([2*fit_coeff[0]*x_0 + fit_coeff[1] , 2*fit_coeff[0]*x_end + fit_coeff[1]])
-        sqrt_exp = np.sqrt(1.0 + transf_points**2)
-        arc_length = abs(np.diff(transf_points * sqrt_exp + np.log(transf_points + sqrt_exp)) / (4 * abs(fit_coeff[0])))
-    else:
-        
-        fit_points = [fit_coeff[1] * x_0 + fit_coeff[2], fit_coeff[1] * x_end + fit_coeff[2]]
-        arc_length = math.sqrt((x_0 - x_end) ** 2 + (fit_points[0] - fit_points[1]) ** 2)
+    arc_length = compute_arc_length(fit_coeff, x_0, x_end)
 
     if plot:
         x_data = np.arange(-0.5, image.shape[1]+0.5)
@@ -179,9 +200,59 @@ def compute_fit_coeff_poles_arc_length(image, distance_threshold: int=3,
     return (fit_coeff, arc_length, poles, boundary_pixels)
 
 
+def compute_projected_points(fit_coeff, dot_coordinates):
+    """
+    Compute the projected points for each of the dot coordinates
+    in the (N x 2) array and return (N x 2) projected points
+    onto the normal, and distances of the dots to the 
+    backbone, which are the internal y_coordinate
+
+    Dot coordiantes are ofcourse related to the cell image origin, 
+    and not from the image origin.
+
+    Args:
+        fit_coeff: 3 values corresponding to the coefficients
+            of the quadratic of the backbone
+        dot_coordinates (np.ndarray): (N x 2) floats
+    
+    Returns:
+        projected_points (np.ndarray): (N x 2) floats
+        interna_y (np.ndarray): (N) floats
+    """
+    assert dot_coordinates.shape[0] > 0, "`Not enough dots to compute internal coordinates`"
+    projected_points = np.zeros_like(dot_coordinates)
+    internal_y = np.zeros((dot_coordinates.shape[0],))
+    p0, p1, p2 = fit_coeff
+    for i in range(dot_coordinates.shape[0]):
+        x0, y0 = dot_coordinates[i]
+        if abs(p0) > 1e-10:
+            x_star = np.roots([2*p0**2, 3*p0*p1, 2*p0*(p2-y0) + (p1**2+1), p1*(p2-y0)-x0])
+            x_star[abs(np.imag(x_star)) < 1e-10] = np.real(x_star[abs(np.imag(x_star)) < 1e-10])
+            x_star = np.real(x_star[np.isreal(x_star)])
+            x_mid = -p1/(2*p0)
+            if x0 > x_mid:
+                projected_point_x = np.max(x_star)
+            else:
+                projected_point_x = min(x_star)
+        else:
+            projected_point_x = x0 - ((p1 * (p2 - p1)) / ((p1**2 + 1)))
+        
+        projected_point_y =  p0 * projected_point_x ** 2 + p1 * projected_point_x + p2
+        projected_points[i][0] = projected_point_x
+        projected_points[i][1] = projected_point_y
+
+        internal_y[i]  = math.sqrt((projected_point_x- x0)**2 + (projected_point_y - y0)**2)
+        # Sign inversion depending on which side of the backbone the 
+        # dot lies on
+        if projected_point_y < y0:
+            internal_y[i] = -internal_y[i]
+
+    return projected_points, internal_y
+
+
 def regionprops_custom(label_img, dots = None, dilation_threshold:int = 3):
     """
-    Custom region props function that calculates addition properties
+    Custom region props function that calculates additional properties
     such as backbone pixels, arc length, poles of the cell. It also
     stores the coefficients of the backbone quadratic equation fit.
 
@@ -189,7 +260,9 @@ def regionprops_custom(label_img, dots = None, dilation_threshold:int = 3):
         label_img (np.ndarray) : labelled image numpy array.
         dots (np.ndarray) : if not None, will also place dots and
             compute internal coordinates as well and write this 
-            to a list of dots per cell.
+            to a list of dots per cell. First column has x values
+            and second colum has y values from the origin of the image
+            shape (N x 2)
     
     Returns:
         regionprops (list): a list of regionprops with properties for each
@@ -207,18 +280,39 @@ def regionprops_custom(label_img, dots = None, dilation_threshold:int = 3):
             4. boundary_pixels
             5. dots: a list of dots where each element is a dictionary
                 {
-                    'global_coordinate': (x, y) from the origin of the image (0, 0),
-                    'local_coordinate': (x, y) from the origin of the labelled blob
+                    'global': (x, y) from the origin of the image (0, 0),
+                    'local': (x, y) from the origin of the labelled blob
                         sliced out of the image
-                    'internal_coordinate': (x, y) internal coordinate calculated using
-                        the backbone and poles 
+                    'internal': (x, y) internal coordinate calculated using
+                        the backbone and poles
+                    'normalized_internal': (x, y) internal coordinate calculated
+                        using internal coordinates and normalized by length and
+                        width.
                 }
     """
     props = regionprops(label_img, extra_properties=(compute_fit_coeff_poles_arc_length,))
     for cellprop in props:
         #print(f"Cell no: {cellprop.label}")
         cellprop.fit_coeff, cellprop.arc_length, cellprop.poles, cellprop.boundary_pixels = cellprop.compute_fit_coeff_poles_arc_length
+        # place dots inside cells as well.
+        if dots is not None:
+            # filter dots that fall inside the cell's bbox
+
+            # compute internal coordinates from the global coordinates
+
+            c_global, c_local, c_internal, c_normal = compute_dots_inside_cell()
+            cellprop.dots = {
+                'global': c_global,
+                'local': c_local,
+                'internal': c_internal,
+                'normalized_internal': c_normal,
+            }
     return props
 
 
+def compute_dots_inside_cell():
 
+
+    # Convert global coordinate to local coordinate 
+    # and then compute internal coordiantes
+    return None, None, None, None
