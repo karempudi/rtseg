@@ -1,6 +1,47 @@
 import torch
 import torch.nn.functional as F
+from skimage.measure import label
+from skimage.segmentation import expand_labels
 
+def clean_spots(image):
+    """
+    Clean isolated single pixels spots on the image
+    """
+    clean_kernel = torch.ones((1, 1, 3, 3)).to(image.device)
+    conved = F.conv2d(image, clean_kernel, padding='same')
+    image[conved == 1] = 0
+    return image
+
+def clean_hbreak(image):
+    """
+    Break two horizontal lines connected by one 1 pixel.
+    """
+    kernel1 = torch.tensor([[1.0, 1.0, 1.0], [0.0, 1.0, 0.0], [1.0, 1.0, 1.0]])[None, None, :].to(image.device)
+    kernel2 = torch.tensor([[0.0, 0.0, 0.0], [1.0, 0.0, 1.0], [0.0, 0.0, 0.0]])[None, None, :].to(image.device)
+    conved1 = F.conv2d(image, kernel1, padding='same')
+    conved2 = F.conv2d(image, kernel2, padding='same')
+    result = torch.logical_and(conved1 == 7, conved2 == 2).float()
+
+    find_ones = torch.ones((1, 1, 3, 3)).to(image.device)
+    conved = F.conv2d(result, find_ones, padding = 'same')
+    image[conved == 1] = 0
+    return image
+
+def clean_vbreak(image):
+    """
+    Break two vertical lines connected by 1 pixel
+    """
+    kernel1 = torch.tensor([[1.0, 0.0, 1.0], [1.0, 1.0, 1.0], [1.0, 0.0, 1.0]])[None, None, :].to(image.device)
+    kernel2 = torch.tensor([[0.0, 1.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0]])[None, None, :].to(image.device)
+    conved1 = F.conv2d(image, kernel1, padding='same')
+    conved2 = F.conv2d(image, kernel2, padding='same')
+    result = torch.logical_and(conved1 == 7, conved2 == 2).float()
+
+    find_ones = torch.ones((1, 1, 3, 3)).to(image.device)
+    conved = F.conv2d(result, find_ones, padding = 'same')
+
+    image[conved == 1] = 0
+    return image
 
 def compute_wavelet_planes(anscombe_image, device: str = 'cpu'):
     """
@@ -47,7 +88,8 @@ def compute_wavelet_planes(anscombe_image, device: str = 'cpu'):
 
 
 
-def compute_spot_binary_mask(image, wavelet_plane, noise_threshold, device='cpu'):
+def compute_spot_binary_mask(image, seg_mask, wavelet_plane_no = 2,
+             noise_threshold = 3.0, noise_level_division=0.7, device='cpu'):
     """
     Args:
         image:
@@ -59,20 +101,48 @@ def compute_spot_binary_mask(image, wavelet_plane, noise_threshold, device='cpu'
         A binary mask with 
 
     """
-    #image = image.astype('float32')
+    image = image.astype('float32')
 
     # first compute the wavelet planes
 
-    #image_tensor = torch.from_numpy(image).to(device)
+    image_tensor = torch.from_numpy(image).to(device)
     # some transformation
-    #anscombe_image = 2 * torch.sqrt(image_tensor + 3.0/8.0)
-    #wavelet_planes = compute_wavelet_planes(anscombe_image, device=device)
+    anscombe_image = 2 * torch.sqrt(image_tensor + 3.0/8.0)
+    # waveletplanes
+    w = compute_wavelet_planes(anscombe_image, device=device)
 
     # filter wavelet planes
+    w = w.to(device)
+    seg_mask = torch.from_numpy(seg_mask)
+    seg_mask = seg_mask.to(device)
+    ind = seg_mask > 0
+
+    w_masked = w[:, ind]
+    w_mean = torch.mean(w_masked, dim=1)[:, None]
+    noise_level = torch.median(torch.abs(w_masked - w_mean), dim=1).values / noise_level_division
+    threshold = noise_threshold * noise_level
+    
+    filtered_image = torch.zeros_like(w[wavelet_plane_no], device=device)
+
+    filtered_image[torch.abs(w[wavelet_plane_no]) >= threshold[wavelet_plane_no]] = 1
+
+    filtered_image *= w[wavelet_plane_no]
+
+    binary_mask = torch.zeros_like(filtered_image, device=device)
+    binary_mask[filtered_image > 0] = 1
+    
 
     # cleanup the binary spot mask for random noise.
-    #wavelet_planes = None
-    binary_spot_mask = None
+
+    cleaned = clean_spots(binary_mask[None, None, :])
+    cleaned = clean_hbreak(cleaned)
+    cleaned = clean_vbreak(cleaned)
+    cleaned = clean_spots(cleaned)
+    # thicken using skimage
+    
+    cleaned_mask = cleaned[0][0].cpu().numpy()
+
+    binary_spot_mask = expand_labels(label(cleaned_mask)) > 0
 
     return binary_spot_mask
 
