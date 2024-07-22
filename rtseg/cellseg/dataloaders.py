@@ -16,7 +16,8 @@ class PhaseContrast(Dataset):
 
     def __init__(self, phase_dir, labels_dir , vf_dir = None, vf: bool = False, 
                 labels_delimiter: str = '_masks', vf_delimiter : str = '_vf', transforms = None,
-                phase_format: str ='.png', labels_format: str ='.png', vf_format: str = '.npy'):
+                phase_format: str ='.png', labels_format: str ='.png', vf_format: str = '.npy',
+                vf_at_runtime: bool = False):
         """
         Dataloader for gettting training/ testing datasets
 
@@ -66,13 +67,16 @@ class PhaseContrast(Dataset):
         self.labels_filenames: List[pathlib.Path] = [ labels_dir / Path(filename.stem + labels_delimiter + labels_format)
                                                              for filename in self.phase_filenames]
 
-        self.vf = False
-        if vf:
-            self._getitem = self._get_image_mask_vf
-            self.vf = vf
+        self.vf = False 
+        self.vf_at_runtime = vf_at_runtime 
+        #if vf:
+        #    self._getitem = self._get_image_mask_vf
+        #j    self.vf = vf
             # construction using phase_filenames
-            self.vf_filenames: List[pathlib.Path] = [ vf_dir / Path(filename.stem + vf_delimiter + vf_format)
-                                                            for filename in self.labels_filenames]
+        #    self.vf_filenames: List[pathlib.Path] = [ vf_dir / Path(filename.stem + vf_delimiter + vf_format)
+                                                            #for filename in self.labels_filenames]
+        if self.vf_at_runtime:
+            self._getitem = self._get_image_mask_vf
 
         else:
             self._getitem = self._get_image_mask
@@ -83,14 +87,16 @@ class PhaseContrast(Dataset):
     def _get_image_mask_vf(self, idx):
         phase_filename = self.phase_filenames[idx]
         mask_filename = self.labels_filenames[idx]
-        vf_filename = self.vf_filenames[idx]
+        #vf_filename = self.vf_filenames[idx]
 
         image = imread(phase_filename).astype(np.float32)
         mask = imread(mask_filename).astype(np.float32)
-        vf = np.load(vf_filename).astype(np.float32)
+        #vf = np.load(vf_filename).astype(np.float32)
 
         if self.transforms is not None:
-            image, mask, vf = self.transforms(image, mask, vf)
+            #print(image.shape)
+            #print(mask.shape)
+            image, mask, vf = self.transforms(image, mask)
 
         return image, mask, vf
 

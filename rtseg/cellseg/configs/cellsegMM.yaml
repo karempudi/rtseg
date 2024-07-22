@@ -23,7 +23,8 @@ Dataset:
     phase_dir: "phase" # where the phase contrast images are
     labels_dir: "mask" # where the labels are
     vf_dir: "vf11" # vector fields dir
-    vf: true # train for vector fields
+    #vf: true # train for vector fields
+    vf_at_runtime: true
     labels_delimiter: ''
     vf_delimiter: '_vf_11' # extension you used to save 
     transforms: "train"
@@ -63,7 +64,7 @@ Training:
     skip_channel_seg: true
 
   optimizer:
-    lr: 0.0003
+    lr: 0.0001
 
   losses:
     mse_loss:  # MSE loss between vector fields predicted and true
@@ -84,7 +85,7 @@ Training:
     every: 50 # save model, optimizer state and epoch number every 10 epochs
 
 
-  nEpochs: 50
+  nEpochs: 100
   batch_size: 16
   num_workers: 4
   val_batch_size: 4

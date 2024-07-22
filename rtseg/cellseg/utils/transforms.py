@@ -1,9 +1,14 @@
 
 import numpy as np
-import numpy.random as random
-
-from math import ceil
-
+#import numpy.random as random
+from torchvision import transforms # type: ignore
+import torchvision.transforms.functional as TF # type: ignore
+import random
+#from math import ceil
+from skimage.exposure import adjust_gamma, rescale_intensity
+from rtseg.cellseg.numerics.sdf_vf import sdf_vector_field
+from skimage.measure import label
+import torch
 
 def v_flip(image):
     return np.ascontiguousarray(image[:, ::-1, ...])
@@ -47,72 +52,68 @@ class Compose:
     def __init__(self, layers):
         self.layers = layers
 
-    def __call__(self, image, mask, vf = None):
-        if vf is None:
-            for layer in self.layers:
-                image, mask = layer(image, mask)
-            return image, mask
-        else:
-            for layer in self.layers:
-                image, mask, vf = layer(image, mask, vf)
+    def __call__(self, image, mask):
+        inputs = (image, mask)
+        for layer in self.layers:
+            #print(layer)
+            inputs = layer(*inputs)
+        return inputs
 
-            return image, mask, vf
- 
 class RandomCrop:
-    def __init__(self, crop_h, crop_w):
-        self.crop_h = crop_h
-        self.crop_w = crop_w
 
+    def __init__(self, output_size):
+        if isinstance(output_size, tuple):
+            self.output_size = output_size
+        elif isinstance(output_size, int):
+            self.output_size = (output_size, output_size)
+        
     def __call__(self, image, mask, vf = None):
-        """
-        None
 
-        Args:
-            image (List[np.ndarray]): List of numpy arrays, each
-                of shape (C, H, W). 
+        i, j, h, w = transforms.RandomCrop.get_params(image, output_size=self.output_size)
+        image = TF.crop(image, i, j, h, w)
+        mask = TF.crop(mask, i, j, h, w)
 
-        Returns: 
-            List[np.ndarray]: List of numpy arrays, each of shape
-                (C, crop_h, crop_w).
-
-        """
-        _, height, width = image.shape
-
-        if width < self.crop_w:
-            pad = ceil((self.crop_w - width) / 2)
-            padding = ((0, 0), (0, 0), (pad, pad))
-
-            image = np.pad(image, padding)
-            mask = np.pad(mask, padding)
-
-            if vf is not None:
-                vf = np.pad(vf, padding)
-
-        if height < self.crop_h:
-            pad = ceil((self.crop_h - height) / 2)
-            padding = ((0, 0), (pad, pad), (0, 0))
-
-            image = np.pad(image, padding)
-            mask = np.pad(mask, padding)
-
-            if vf is not None:
-                vf = np.pad(vf, padding)
-
-        _, height, width = image.shape
-        y1, y2, x1, x2 = random_crop_coords(
-            height,
-            width,
-            self.crop_h,
-            self.crop_w
-        )
-
-        image = image[:, y1 : y2, x1 : x2]
-        mask = mask[:, y1 : y2, x1 : x2]
-
-        if vf is not None:
-            vf = vf[:, y1 : y2, x1 : x2]
+        if vf is None:
+            return image, mask
 
         return image, mask, vf
+
+class RandomRotation:
+
+    def __init__(self, rotation_angle):
+        self.rotation_angle = rotation_angle
+    
+    def __call__(self, image, mask, vf = None):
+        angle = transforms.RandomRotation.get_params((-self.rotation_angle, self.rotation_angle))
+        #print(angle)
+
+        image = TF.rotate(image, angle)
+        mask = TF.rotate(mask, angle)
+
+        if vf is None:
+            return image, mask
+        
+        return image, mask, vf
+
+class RandomBrightness:
+
+    def __init__(self, gamma_range=(0.7, 1.4), brightness_add_range=(-2500.0, 5000.0)):
+        self.gamma_range = gamma_range
+        self.brightness_add_range = brightness_add_range
+
+    def __call__(self, image, mask, vf = None):
+        gamma = random.uniform(*self.gamma_range)
+        brightness = random.uniform(*self.brightness_add_range)
+
+        image = adjust_gamma(image, gamma = gamma)
+        image += brightness
+        image = rescale_intensity(image, in_range='image', out_range='uint16')
+
+        if vf is None:
+            return image, mask
+
+        return image, mask, vf
+
 
 class ToFloat:
     
@@ -120,14 +121,12 @@ class ToFloat:
         self.max_value = max_value
 
     def __call__(self, image, mask, vf = None):
-        image = image.astype(np.float32) / self.max_value
-        mask = mask.astype(np.float32)
+        image = image / self.max_value
 
-        if vf is not None: 
-            vf = vf.astype(np.float32)
-            return image, mask, vf
-        else:
+        if vf is None: 
             return image, mask
+        else:
+            return image, mask, vf
 
 
 
@@ -136,16 +135,23 @@ class HorizontalFlip:
         self.p = p
 
     def __call__(self, image, mask, vf = None):
+        #if random.random() < self.p:
+        #    image = h_flip(image)
+        #    mask  = h_flip(mask)
+#
+#            if vf is not None:
+#                vf = h_flip(vf)
+#
+#                # Must change the order of VF if doing
+#                # horizontal flip.
+#                vf[0] = -vf[0]
+
         if random.random() < self.p:
-            image = h_flip(image)
-            mask  = h_flip(mask)
+            image = TF.hflip(image)
+            mask = TF.hflip(mask)
 
-            if vf is not None:
-                vf = h_flip(vf)
-
-                # Must change the order of VF if doing
-                # horizontal flip.
-                vf[0] = -vf[0]
+        if vf is None:
+            return image, mask
 
         return image, mask, vf
 
@@ -154,17 +160,22 @@ class VerticalFlip:
         self.p = p
 
     def __call__(self, image, mask, vf = None):
+        #if random.random() < self.p:
+        #    image = v_flip(image) # always calculate vfs in the end 
+        #    mask  = v_flip(mask)
+#
+#            if vf is not None:
+#                vf = v_flip(vf)
+#
+#                # Must change the order of VF if doing
+#                # vertical flip.
+#                vf[1] = -vf[1]
         if random.random() < self.p:
-            image = v_flip(image)
-            mask  = v_flip(mask)
+            image = TF.vflip(image)
+            mask = TF.vflip(mask)
 
-            if vf is not None:
-                vf = v_flip(vf)
-
-                # Must change the order of VF if doing
-                # vertical flip.
-                vf[1] = -vf[1]
-
+        if vf is None:
+            return image, mask
 
         return image, mask, vf
 
@@ -183,21 +194,73 @@ class AddDimension:
 
         return image, mask, vf
 
+class RandomAffine:
+
+    def __init__(self, scale, shear):
+        self.scale = scale
+        self.shear = shear
+    
+    def __call__(self, image, mask, vf = None):
+
+        angle, translations, scale, shear = transforms.RandomAffine.get_params(degrees=[0, 0], translate=None, 
+        scale_ranges=self.scale, shears=self.shear, img_size=image.size)
+
+        image = TF.affine(image, angle=angle, translate=translations, scale=scale, shear=shear)
+        mask = TF.affine(mask, angle=angle, translate=translations, scale=scale, shear=shear)
+
+        if vf is None:
+            return image, mask
+    
+        return image, mask, vf
+
+class AddVectorField:
+
+    def __init__(self, kernel_size):
+        self.kernel_size = kernel_size
+    
+    def __call__(self, image, mask, vf = None):
+        
+        image = transforms.ToTensor()(image)
+        mask = np.array(mask).astype('float32')
+        mask = label(mask)
+
+        vf = sdf_vector_field(torch.tensor(mask)[None, :], self.kernel_size)
+        mask = torch.tensor(mask)[None, :]
+
+        return image, mask, vf
+
+class changedToPIL:
+
+    def __call__(self, image, mask, vf = None):
+        
+        image = image.astype('int16')
+        image = TF.to_pil_image(image)
+        mask = TF.to_pil_image(mask)
+        if vf is None:
+            return image, mask
+        
+        return image, mask, vf
+
 
 train_transform = Compose([
-    AddDimension(),
-    RandomCrop(320, 320),
+    changedToPIL(),
+    RandomCrop(320),
+    RandomRotation(20.0),
+    RandomAffine(scale=(0.75, 1.25), shear=(-30, 30, -30, 30)),
     VerticalFlip(p = 0.25),
     HorizontalFlip(p = 0.25),
+    #RandomBrightness(gamma_range=(0.7, 1.4), brightness_add_range=(-2500.0, 5000.0)),
+    AddVectorField(kernel_size=11), # always calculate vfs in the end 
     ToFloat(65535),
 ])
 
 eval_transform = Compose([
     AddDimension(),
+    #RandomBrightness(gamma_range=(0.7, 1.4), brightness_add_range=(-2500.0, 5000.0)),
     ToFloat(65535)
 ])
 
-transforms = {
+all_transforms = {
     "train": train_transform,
     "eval": eval_transform,
     None: None

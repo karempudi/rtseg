@@ -9,7 +9,7 @@ import yaml
 from rtseg.cellseg.networks import model_dict
 from rtseg.cellseg.utils.checkpoints import load_checkpoint, save_checkpoint
 from rtseg.cellseg.dataloaders import PhaseContrast
-from rtseg.cellseg.utils.transforms import transforms
+from rtseg.cellseg.utils.transforms import all_transforms
 from rtseg.cellseg.losses import IVPLoss, TverskyLoss
 from torch.utils.data import DataLoader, random_split
 from rtseg.utils.logger import SummaryWriter
@@ -90,11 +90,11 @@ def train_model(param_file: str | Path, log_dir: str | Path = '',
 
     # Datasets
     train_dir = Path(param.Dataset.Train.directory)
-    train_transforms = transforms[param.Dataset.Train.transforms]
+    train_transforms = all_transforms[param.Dataset.Train.transforms]
     train_dataset = PhaseContrast(phase_dir=train_dir / Path(param.Dataset.Train.phase_dir),
                     labels_dir=train_dir/Path(param.Dataset.Train.labels_dir),
                     vf_dir=train_dir/Path(param.Dataset.Train.vf_dir),
-                    vf=param.Dataset.Train.vf,
+                    vf_at_runtime=param.Dataset.Train.vf_at_runtime,
                     labels_delimiter=param.Dataset.Train.labels_delimiter,
                     vf_delimiter=param.Dataset.Train.vf_delimiter,
                     transforms=train_transforms,
