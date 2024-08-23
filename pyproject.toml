@@ -33,7 +33,6 @@ dependencies = [
     "matplotlib",
     "jupyter",
     "pyside6",
-    "pika"
 ]
 
 [project.scripts]
