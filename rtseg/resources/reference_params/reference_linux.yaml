@@ -1,0 +1,54 @@
+
+
+
+BarcodeAndChannels:
+  thresholds:
+    conf: 0.25
+    iou: 0.45
+  img_size:
+    - 256
+    - 800
+  dist_thresholds:
+    min: 600
+    max: 900
+    dist: 760
+    channel_dist: 23
+    size: 20
+    prominences: 400
+  architecture: 'YOLOv3'
+  model_path: '/mnt/sda1/REALTIME/'
+  batch_size: 1
+  transformations:
+    before_type: 'YoloLiveAugmentations'
+    after_type: 'YoloLiveUnAgumentations'
+  model_params:
+    num_classes: 1
+    anchors: 
+      number: 9
+      sizes:
+      - - 19
+        - 168
+      - - 21
+        - 168
+      - - 29
+        - 178
+      - - 11
+        - 130
+      - - 11
+        - 131
+      - - 15
+        - 165
+      - - 6
+        - 115
+      - - 7
+        - 115
+      - - 7
+        - 125
+      strides:
+        - - 32
+          - 32
+        - - 16
+          - 16
+        - - 8
+          - 8
+    

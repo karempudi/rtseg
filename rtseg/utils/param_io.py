@@ -134,6 +134,11 @@ def load_reference(ref_type: str = 'cellseg'):
         from ..barcodedetect import configs # type: ignore
         param_ref = pkg_resources.open_text(configs, 'barcodedetect.yaml')
         param_ref = yaml.load(param_ref, Loader=yaml.SafeLoader)
+    
+    elif ref_type == 'expt':
+        from ..resources import reference_params
+        param_ref = pkg_resources.open_text(reference_params, 'reference_linux.yaml')
+        param_ref = yaml.load(param_ref, Loader=yaml.SafeLoader)
 
     return param_ref
 
