@@ -182,20 +182,21 @@ class YoloLiveAugmentations:
 
     def __init__(self, parameters = {
         'to_float' : {'max_value': 65535.0},
-        'resize': {'height': 256, 'width': 800, 'interpolation': cv2.INTER_LINEAR, 'always_apply': True},
+        'resize': {'height': 256, 'width': 800, 'interpolation': cv2.INTER_LINEAR},
         'from_float': {'max_value': 65535.0}
     }):
         self.parameters = parameters
         self.transform = A.Compose([
-            A.ToFloat(**parameters['to_float']),
+            #A.ToFloat(**parameters['to_float']),
             A.Resize(**parameters['resize']),
-            A.FromFloat(**parameters['from_float'])
+            #A.FromFloat(**parameters['from_float'])
         ])
         self.img_size = (self.parameters['resize']['height'], self.parameters['resize']['width'])
     def __call__(self, datapoint):
         # datapoint is a dict with keys = {'phase', ...}
         datapoint['phase'] = cv2.cvtColor(datapoint['phase'], cv2.COLOR_BGR2RGB)
         transformed = self.transform(image=datapoint['phase'])
+        #print(transformed['image'].shape)
         image = transforms.ToTensor()(transformed['image'][:, :, 0].astype('float32'))
         datapoint['phase'] = image
         return datapoint
@@ -211,7 +212,7 @@ class YoloLiveUnAugmentations:
 
     """
     def __init__(self, parameters = {
-        'resize' : {'height': 816, 'width': 4096, 'always_apply':True} # this the resize height to ie, the original image
+        'resize' : {'height': 816, 'width': 4096} # this the resize height to ie, the original image
     }):
         self.transform = A.Compose([
             A.Resize(**parameters['resize'])
