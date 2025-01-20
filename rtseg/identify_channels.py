@@ -1,7 +1,9 @@
 import torch
+import numpy as np
 from rtseg.barcodedetect.networks import model_dict as barcode_model_dict
 from rtseg.barcodedetect.utils import YoloLiveAugmentations, outputs_to_bboxes
 from rtseg.barcodedetect.utils import non_max_suppression, YoloLiveUnAugmentations
+from scipy.signal import find_peaks
 
 
 def get_barcode_model(model_path, anchor_sizes, strides, num_classes=1, device='cuda:0'):
@@ -68,6 +70,43 @@ def detect_barcodes(model, anchors, strides, image, model_img_size,
 
     return bboxes_final
 
-# entry point into indentifying and mapping channels between two images
-def channel_locations(image):
-    pass
+def channel_locations(image, bboxes, num_traps_per_block=14, distance_between_channels=23):
+    """
+    Returns a dictionary where keys are index of the bbox in the bboxes list and values
+    are an array of numbers where the elements are positions of the channels
+
+    It also returns which of the bboxes are used to pull traps from its left side.
+
+    Arguments:
+        image: phase image
+        bboxes: the bboxes_final you get from detect_barcode function above
+        num_traps_per_block (int): used to index into the peaks to pick up centers of traps
+        distance_between_channels (int): used for peak finding
+
+    Re
+    """
+    channel_locations = dict()
+
+    #bboxes_centers = [(bbox[0] + bbox[2])/2 for bbox in bboxes]
+
+    hist = np.sum(image, axis=0)
+    peaks, _ = find_peaks(hist, distance=distance_between_channels)
+
+    bboxes_taken = [False for bbox in bboxes]
+    bboxes_bounds = [(bbox[0], bbox[2]) for bbox in bboxes]
+
+    for peak_idx, peak in enumerate(peaks, 0):
+        for i, bbox_bound in enumerate(bboxes_bounds):
+            if peak >= bbox_bound[0] and peak <= bbox_bound[1]:
+                #print(peak, peak_idx,"--->", bbox_bound, i)
+                try:
+                    channel_locations[i] = peaks[peak_idx-num_traps_per_block: peak_idx]
+                    bboxes_taken[i] = True
+                except Exception:
+                    pass
+                finally:
+                    if bboxes_taken[i] is False:
+                        channel_locations[i] = np.array([])
+
+    return channel_locations, bboxes_taken
+
