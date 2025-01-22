@@ -1,4 +1,50 @@
 
+Save:
+  trap_width: 40
+
+Segmentation:
+  type: 'dual' # if dual predicts, 2 channels at once, if single predicts one item at a time
+  architecture: 'Unet' # Network type used for cell seg
+  output:
+    - 'cells'
+    - 'channels'
+  model_paths: # list .pt or .pth file containing network weights, 
+    both: '/mnt/sda1/REALTIME/network_expts/seg_expts/2025-01-22_13-53-51/model.pth'
+    cells: # fill in if you have different model
+    channels: # fill in if you have different model
+  thresholds:
+    cells: 
+      probability: 0.9
+    channels:
+      probability: 0.5
+  
+  transformations:
+    before_type: 'UnetTestTransforms' # write something compatible with networks above
+    after_type: 'PostSegTransforms' # write soemething compatible with networks above # not used for now
+  model_params:
+    channels_by_scale:
+      - 1
+      - 32
+      - 64
+      - 128
+      - 256
+    num_outputs: 2
+    upsample_type: 'transpose_conv'
+    feature_fusion_type: 'concat' 
+
+Dots:
+  min_spot_area:
+  max_axes_ratio:
+  wavelet_plane_no:
+  noise_threshold:
+
+Events:
+  path: ''
+
+Logging:
+  to_file: True
+  to_console: True
+
 
 
 BarcodeAndChannels:
@@ -16,7 +62,7 @@ BarcodeAndChannels:
     size: 20
     prominences: 400
   architecture: 'YOLOv3'
-  model_path: '/mnt/sda1/REALTIME/'
+  model_path: '/mnt/sda1/REALTIME/network_expts/barcode_expts/2025-01-17_13-26-07/model.pth'
   batch_size: 1
   transformations:
     before_type: 'YoloLiveAugmentations'

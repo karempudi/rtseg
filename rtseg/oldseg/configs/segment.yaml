@@ -1,0 +1,94 @@
+---
+# Segmentation network training parameters all 
+# parameters need, including network hyper parameters
+# are written in the is file. It is used to train 
+# models for segmentation of cells and channels
+Model:
+
+Save:
+  directory: '/mnt/sda1/REALTIME/network_expts/seg_expts' # main direcotry that contains all training runs
+
+Datasets:
+  directory: '/mnt/sda1/REALTIME/data/seg_unet/dual'
+  # duals are when you learn channels and cells in the same model
+  type:  'unet_dual'  # used for dataset class
+   # Each species data is split into 3 parts train, validation, test.
+  weights: True
+  transformations: 
+    type: 'UnetTrainTransforms'
+
+  train:
+    percentage: 0.81
+    subset:
+      - 'train'
+  validation:
+    percentage: 0.20
+    subset:
+      - 'validation'
+  test:
+    directory: '/mnt/sda1/REALTIME/data/test_data/test_imgs'
+    save_directory: '/mnt/sda1/REALTIME/network_expts/seg_test_save/'
+    transformations:
+      type: 'UnetTestTransforms'
+    probability: 0.8
+
+
+Metrics:
+
+PreTrain:
+  load_params: False # load a model file and use a pretrainied parameters, default is False
+  model_filename: # file used to load pretrained weights of the model
+
+Checkpoints:
+  load_ckpt: False # Incase the training stops, we should load from checkpoint and restart
+  ckpt_filename: # ckpt filename from which to load the experiment to restart
+
+Hardware:
+  device: 'cuda:0' # device on which to train the network
+  num_workers: 6 #
+  torch_threads: 6
+
+
+# All network architecture and training related parameters
+HyperParameters:
+  train_batch_size: 16
+  validation_batch_size: 4
+  test_batch_size: 1
+  architecture: 'Unet'
+  epochs: 33
+  optimizer:
+    name: 'AdamW'
+    learning_rate: 0.0005
+    momentum: 0.9
+    weight_decay: 0.0005
+  scheduler:
+    name: 'CosineWarmup'
+    warmup: 10
+    max_iters: 200
+
+  loss: 'unet_dual'
+
+  model_params:
+    channels_by_scale:
+      - 1
+      - 32
+      - 64
+      - 128
+      - 256
+    num_outputs: 2
+    upsample_type: 'transpose_conv'
+    feature_fusion_type: 'concat'
+
+# use this section for debugging on unlabelled data using segmentation.test.py
+# All parameters needed of testing are incldued in this section
+# This section needs to be self contained and will be read during the test loop of the
+# model
+Testing:
+  Hardware:
+    device: 'cuda:0'
+    num_workers: 6
+    torch_threads: 6
+
+  model_path: None 
+  images_dir: '/mnt/sda1/REALTIME/data/seg_unet/channels/phase'
+  save_dir: '/mnt/sda1/REALTIME/network_expts/seg_test_save'

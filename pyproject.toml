@@ -35,11 +35,13 @@ dependencies = [
     "pyside6",
     "albumentations",
     "art",
+    "zarr==2.11",
 ]
 
 [project.scripts]
 rtseg-segtrain = "rtseg.cellseg.train:main"
 rtseg-dotdetect = "rtseg.forkplot_app:main"
+rtseg-oldsegtrain = "rtseg.oldseg.train:main"
 
 
 [project.optional-dependencies]
