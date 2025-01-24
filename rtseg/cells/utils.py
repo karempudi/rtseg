@@ -250,7 +250,7 @@ def compute_projected_points(fit_coeff, dot_coordinates):
     return projected_points, internal_y
 
 
-def regionprops_custom(label_img, dots = None, dilation_threshold:int = 3):
+def regionprops_custom(label_img):
     """
     Custom region props function that calculates additional properties
     such as backbone pixels, arc length, poles of the cell. It also
@@ -258,11 +258,6 @@ def regionprops_custom(label_img, dots = None, dilation_threshold:int = 3):
 
     Args:
         label_img (np.ndarray) : labelled image numpy array.
-        dots (np.ndarray) : if not None, will also place dots and
-            compute internal coordinates as well and write this 
-            to a list of dots per cell. First column has x values
-            and second colum has y values from the origin of the image
-            shape (N x 2)
     
     Returns:
         regionprops (list): a list of regionprops with properties for each
@@ -278,35 +273,12 @@ def regionprops_custom(label_img, dots = None, dilation_threshold:int = 3):
                 [[x1, y1], [x2, y2]]. We are using image coordinates and not
                 row colums.
             4. boundary_pixels
-            5. dots: a list of dots where each element is a dictionary
-                {
-                    'global': (x, y) from the origin of the image (0, 0),
-                    'local': (x, y) from the origin of the labelled blob
-                        sliced out of the image
-                    'internal': (x, y) internal coordinate calculated using
-                        the backbone and poles
-                    'normalized_internal': (x, y) internal coordinate calculated
-                        using internal coordinates and normalized by length and
-                        width.
-                }
     """
     props = regionprops(label_img, extra_properties=(compute_fit_coeff_poles_arc_length,))
     for cellprop in props:
         #print(f"Cell no: {cellprop.label}")
         cellprop.fit_coeff, cellprop.arc_length, cellprop.poles, cellprop.boundary_pixels = cellprop.compute_fit_coeff_poles_arc_length
-        # place dots inside cells as well.
-        if dots is not None:
-            # filter dots that fall inside the cell's bbox
 
-            # compute internal coordinates from the global coordinates
-
-            c_global, c_local, c_internal, c_normal = compute_dots_inside_cell()
-            cellprop.dots = {
-                'global': c_global,
-                'local': c_local,
-                'internal': c_internal,
-                'normalized_internal': c_normal,
-            }
     return props
 
 
