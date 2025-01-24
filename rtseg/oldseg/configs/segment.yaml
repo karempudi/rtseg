@@ -63,8 +63,8 @@ HyperParameters:
     weight_decay: 0.0005
   scheduler:
     name: 'CosineWarmup'
-    warmup: 10
-    max_iters: 200
+    warmup: 3
+    max_iters: 66
 
   loss: 'unet_dual'
 

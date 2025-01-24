@@ -22,7 +22,7 @@ def get_barcode_model(model_path, anchor_sizes, strides, num_classes=1, device='
     return barcode_model, anchors_t, strides_t
 
 def detect_barcodes(model, anchors, strides, image, model_img_size,
-                        device='cuda:0', conf_thres=0.25, iou_thres=0.45):
+                        device='cuda:0', conf_thres=0.25, iou_thres=0.45, debug=True):
     """
     Arguments:
         model is a pytorch model loaded with parmeters that you can use 
@@ -67,10 +67,11 @@ def detect_barcodes(model, anchors, strides, image, model_img_size,
 
     bboxes_final = post_barcode_transformations(yolo_datapoint)
     bboxes_final = sorted(bboxes_final, key=lambda x: x[0])
-
+    if debug:
+        print(f"Barcodes {len(bboxes_final)} on {image.shape} detected")
     return bboxes_final
 
-def channel_locations(image, bboxes, num_traps_per_block=14, distance_between_channels=23):
+def get_channel_locations(image, bboxes, num_traps_per_block=14, distance_between_traps=23):
     """
     Returns a dictionary where keys are index of the bbox in the bboxes list and values
     are an array of numbers where the elements are positions of the channels
@@ -90,7 +91,7 @@ def channel_locations(image, bboxes, num_traps_per_block=14, distance_between_ch
     #bboxes_centers = [(bbox[0] + bbox[2])/2 for bbox in bboxes]
 
     hist = np.sum(image, axis=0)
-    peaks, _ = find_peaks(hist, distance=distance_between_channels)
+    peaks, _ = find_peaks(hist, distance=distance_between_traps)
 
     bboxes_taken = [False for bbox in bboxes]
     bboxes_bounds = [(bbox[0], bbox[2]) for bbox in bboxes]

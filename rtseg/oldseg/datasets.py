@@ -82,7 +82,7 @@ class MMDatasetUnetDual(Dataset):
             'raw_shape': (height, width)
         }
 
-        if self.transform is None:
+        if self.transform is not None:
             sample = self.transform(sample)
         
         return sample
@@ -157,7 +157,7 @@ class MMDatasetUnetTest(Dataset):
             'raw_shape' : (height, width)
         }
 
-        if self.transform is None:
+        if self.transform is not None:
             sample = self.transform(sample)
         
         return sample

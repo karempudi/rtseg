@@ -6,6 +6,7 @@ from skimage.io import imsave, imread
 import zarr
 from numcodecs import Zlib
 from rtseg.utils.db_ops import read_from_db
+from tifffile import imwrite # used for finer compression things
 
 def write_files(event_data, event_type, param):
     """
@@ -14,7 +15,7 @@ def write_files(event_data, event_type, param):
 
     Arguments:
         event_data: dict containing data to write
-            event data should always have 'position' and 'time' keys
+            event data should always have 'position' and 'timepoint' keys
 
         event_type: 'phase', 'fluor', 'segmented_cells_by_trap'
 
@@ -25,7 +26,7 @@ def write_files(event_data, event_type, param):
     try:
         if 'position' not in event_data.keys():
             raise KeyError
-        if 'time' not in event_data.keys():
+        if 'timepoint' not in event_data.keys():
             raise KeyError
 
         save_dir = Path(param.Save.directory)
@@ -43,7 +44,7 @@ def write_files(event_data, event_type, param):
                 events_dir.mkdir(exist_ok=True, parents=True)
             
             # put image in phase directory at position with timepoint
-            image_filename = 'phase_' + str(event_data['time']).zfill(4) + '.tiff'
+            image_filename = 'phase_' + str(event_data['timepoint']).zfill(4) + '.tiff'
             image_filename = events_dir / Path(image_filename)
             imsave(image_filename, event_data['image'].astype('uint16'))
 
@@ -54,9 +55,20 @@ def write_files(event_data, event_type, param):
                 events_dir.mkdir(exist_ok=True, parents=True)
             
             # put image in fluor directory 
-            image_filename = 'fluor_'  + str(event_data['time']).zfill(4) + '.tiff'
+            image_filename = 'fluor_'  + str(event_data['timepoint']).zfill(4) + '.tiff'
             image_filename = events_dir / Path(image_filename)
-            imsave(image_filename, event_data['image'].astype('uint16'))
+            imsave(image_filename, event_data['image'].astype('uint16'), check_contrast=False)
+        
+        elif event_type == 'seg_mask':
+            # create events dir
+            events_dir = position_dir / Path(event_type)
+            if not events_dir.exists():
+                events_dir.mkdir(exist_ok=True, parents=True)
+
+            # put image in the seg mask directory
+            image_filename = 'mask_' + str(event_data['timepoint']).zfill(4) + '.tiff'
+            image_filename = events_dir / Path(image_filename)
+            imwrite(image_filename, event_data['image'], compression='zlib', compressionargs={'level': 6})
         
         elif event_type == 'segmented_cells_by_trap':
             cells_filename = position_dir / Path('cells.zarr')

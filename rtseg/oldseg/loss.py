@@ -73,4 +73,4 @@ class UnetDualLoss(nn.Module):
             'outside_channel_loss': cells_outside_ch_loss.item()
         }
 
-        return (loss_cells + loss_ch + cells_outside_ch_loss), loss_parts_dict
+        return (2.0* loss_cells + loss_ch + cells_outside_ch_loss), loss_parts_dict
