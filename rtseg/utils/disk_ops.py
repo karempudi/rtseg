@@ -116,7 +116,7 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
 
             barcode_data = read_from_db('barcode_locations', save_dir, position=position, timepoint=last_key)
 
-            channel_location = barcode_data['channel_locations'][channel_no]
+            channel_location = barcode_data['trap_locations'][channel_no]
 
             # find the left and right barcode of the requested channel
             for i, barcode in enumerate(barcode_data['barcode_locations'], 0):
@@ -157,7 +157,7 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
             last_phase_img_filename = save_dir / Path('Pos' + str(filename)) / Path('phase') / Path('phase_' + str(last_key).zfill(4) + '.tiff')
             barcode_data = read_from_db('barcode_locations', save_dir, position=position, timepoint=last_key)
             
-            channel_location = barcode_data['channel_locations'][channel_no]
+            channel_location = barcode_data['trap_locations'][channel_no]
             for i, barcode in enumerate(barcode_data['barcode_locations'], 0):
                 if (((barcode[0] + barcode[2])/2) > channel_location):
                     break
@@ -200,7 +200,7 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
             last_phase_img = imread(last_phase_img_filename)
 
             barcode_data = read_from_db('barcode_locations', save_dir, position=position, timepoint=last_key)
-            channel_location = barcode_data['channel_locations'][channel_no]
+            channel_location = barcode_data['trap_locations'][channel_no]
 
             for i, barcode in enumerate(barcode_data['barcode_locations'], 0):
                 if (((barcode[0] + barcode[2])/2) > channel_location):

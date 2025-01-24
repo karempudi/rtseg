@@ -1,6 +1,9 @@
 
+Hardware:
+  device: 'cuda:0'
+
 Save:
-  trap_width: 40
+  trap_width: 80
 
 Segmentation:
   type: 'dual' # if dual predicts, 2 channels at once, if single predicts one item at a time
@@ -14,7 +17,7 @@ Segmentation:
     channels: # fill in if you have different model
   thresholds:
     cells: 
-      probability: 0.9
+      probability: 0.85
     channels:
       probability: 0.5
   
@@ -33,10 +36,10 @@ Segmentation:
     feature_fusion_type: 'concat' 
 
 Dots:
-  min_spot_area:
-  max_axes_ratio:
-  wavelet_plane_no:
-  noise_threshold:
+  min_spot_area: 0.0
+  max_axes_ratio:  1.7
+  wavelet_plane_no: 1
+  noise_threshold: 3.0
 
 Events:
   path: ''
@@ -49,18 +52,13 @@ Logging:
 
 BarcodeAndChannels:
   thresholds:
-    conf: 0.25
-    iou: 0.45
+    conf: 0.50
+    iou: 0.50
   img_size:
     - 256
     - 800
-  dist_thresholds:
-    min: 600
-    max: 900
-    dist: 760
-    channel_dist: 23
-    size: 20
-    prominences: 400
+  num_traps_per_block: 14
+  distance_between_traps: 65 
   architecture: 'YOLOv3'
   model_path: '/mnt/sda1/REALTIME/network_expts/barcode_expts/2025-01-17_13-26-07/model.pth'
   batch_size: 1

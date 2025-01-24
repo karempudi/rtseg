@@ -242,12 +242,12 @@ def read_from_db(event_type, dir_name, position=None, timepoint=None):
         try:
             con = sqlite3.connect(db_file)
             cur = con.cursor()
-            cur.execute("""SELECT barcodes, barcodelocations, numchannels, channellocations FROM segment WHERE (position=? AND timepoint=?)""", (position, timepoint))
+            cur.execute("""SELECT barcodes, barcodelocations, numtraps, traplocations FROM segment WHERE (position=? AND timepoint=?)""", (position, timepoint))
             data = cur.fetchone()
             data = {'numbarcodes': int(data[0]),
                     'barcode_locations': json.loads(data[1]),
-                    'numchannels': int(data[2]),
-                    'channel_locations': json.loads(data[3])}   
+                    'numtraps': int(data[2]),
+                    'trap_locations': json.loads(data[3])}   
         except Exception as e:
             sys.stdout.write(f"Error {e} while fetching from table segment: barcode_locations -- {dir_name}\n")
             sys.stdout.flush()
