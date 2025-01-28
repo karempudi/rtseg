@@ -7,6 +7,8 @@ import zarr
 from numcodecs import Zlib
 from rtseg.utils.db_ops import read_from_db
 from tifffile import imwrite # used for finer compression things
+import h5py
+import pandas as pd
 
 def write_files(event_data, event_type, param):
     """
@@ -88,6 +90,35 @@ def write_files(event_data, event_type, param):
                                 chunks=(1, height, param.Save.trap_width), order='C', 
                                 dtype='uint8', compressor=compressor)
                 cells_array.append(event_data['image'][np.newaxis, :])
+        
+        elif event_type == 'dot_coordinates':
+            dots_filename = position_dir / Path('dots.hdf5')
+
+            # write data into grups that you can index into
+            # for example 'timepoint/raw_coords' and 'timepoint/rotated_coords' will give
+            # the coordiants on raw image and rotated image
+            if 'raw_coords' not in event_data.keys():
+                raise KeyError
+            if 'rotated_coords' not in event_data.keys():
+                raise KeyError
+            with h5py.File(dots_filename, 'a') as f:
+                f.create_dataset(str(event_data['timepoint']) + '/raw_coords', data=event_data['raw_coords'])
+                f.create_dataset(str(event_data['timepoint']) + '/rotated_coords', data=event_data['rotated_coords'])
+        
+        elif event_type == 'forkplot_data':
+            forks_filename = position_dir / Path('forks.csv')
+
+            if not forks_filename.exists():
+                header=True
+            else:
+                header=False
+            
+            if event_data is not None:
+                fork_stats_table = pd.DataFrame(event_data['fork_data'])
+                fork_stats_table.to_csv(forks_filename, mode='a', index=False, header=header)
+            else:
+                raise Exception("Fork plot data write failed")
+
 
 
     except KeyError:
@@ -181,8 +212,14 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
                 'right_barcode': right_barcode_img
             }
             
-        elif read_type == 'dots':
-            pass
+        elif read_type == 'dots_by_trap':
+            # just read the hdf5 file and give dots for the whole trap
+            #dots_path  = save_dir / Path('Pos' + str(position)) / Path('dots.hdf5')
+            
+            # read all the dots and index by trap
+            return None
+
+
         elif read_type == 'fluor':
             fluor_dir = save_dir / Path('Pos' + str(position)) / Path('fluor')
 

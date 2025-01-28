@@ -9,6 +9,7 @@ from rtseg.barcodedetect.networks import model_dict as barcode_model_dict
 from rtseg.oldseg.transforms import UnetTestTransforms
 from rtseg.barcodedetect.utils import YoloLiveAugmentations, YoloLiveUnAugmentations
 from rtseg.barcodedetect.utils import non_max_suppression, outputs_to_bboxes
+from skimage.morphology import remove_small_holes, remove_small_objects
 #from rtseg.cellseg.utils.transforms import normalize99
 from rtseg.identify_channels import get_channel_locations
 from skimage.measure import label
@@ -195,7 +196,12 @@ def live_segment(datapoint, model, param, visualize=False):
         cell_prob = param.Segmentation.thresholds.cells.probability
 
         # clean up the segmentation mask here if you want
-        seg_mask = label(seg_pred[0][:raw_shape[0], :raw_shape[1]] > cell_prob)
+        binary_cell_mask =  seg_pred[0][:raw_shape[0], :raw_shape[1]] > cell_prob
+        binary_cell_mask = remove_small_holes(binary_cell_mask)
+        binary_cell_mask = remove_small_objects(binary_cell_mask)
+
+        seg_mask = label(binary_cell_mask)
+
 
 
         return {

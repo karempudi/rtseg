@@ -40,6 +40,9 @@ def compute_dot_coordinates(fluor_img, cell_mask, param):
     dots_on_raw_img[:, 0] = dot_coords_np[:, 1]
     dots_on_raw_img[:, 1] = -dot_coords_np[:, 0] + raw_shape[1] - 1
 
-    return dots_on_raw_img
+    return {
+        'raw_coords': dots_on_raw_img,
+        'rotated_coords': dot_coords_np,
+    }
 
 
