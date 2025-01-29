@@ -170,10 +170,11 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
             right_barcode_img = last_phase_img[int(right_barcode[1]): int(right_barcode[3]), int(right_barcode[0]): int(right_barcode[2])]
 
             # grab the required number of images
-            if max_imgs is None:
+            if max_imgs is not None:
                 files_to_iter = phase_filenames[-max_imgs:]
             else:
                 files_to_iter = phase_filenames
+
             trap_width = param.Save.trap_width
             full_img = np.zeros((height, len(files_to_iter) * trap_width))
             for i, filename in enumerate(files_to_iter, 0):
@@ -210,7 +211,7 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
             left_barcode_img = last_phase_img[int(left_barcode[1]): int(left_barcode[3]), int(left_barcode[0]): int(left_barcode[2])]
             right_barcode_img = last_phase_img[int(right_barcode[1]): int(right_barcode[3]), int(right_barcode[0]): int(right_barcode[2])]
 
-            if max_imgs is None:
+            if max_imgs is not None:
                 full_img = data[:, :, (channel_no) * trap_width : (channel_no+1) * trap_width]
                 full_img = np.hstack(full_img)
             else:
@@ -253,25 +254,51 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
             left_barcode_img = last_phase_img[int(left_barcode[1]): int(left_barcode[3]), int(left_barcode[0]): int(left_barcode[2])]
             right_barcode_img = last_phase_img[int(right_barcode[1]): int(right_barcode[3]), int(right_barcode[0]): int(right_barcode[2])]
 
-            if max_imgs is None:
+            if max_imgs is not None:
                 full_img = data[:, :, (channel_no) * trap_width : (channel_no+1) * trap_width]
                 full_img = np.hstack(full_img)
+                indices_to_iter = range(data.shape[0])
             else:
                 full_img = data[-max_imgs:, :, channel_no * trap_width: (channel_no+1) * trap_width]
                 full_img = np.hstack(full_img)
+                indices_to_iter = range(data.shape[0]-max_imgs, data.shape[0])
+            
 
-            
-            
+            dots_filename = save_dir / Path('Pos' + str(position)) / Path('dots.hdf5')
+            # figure out dots on this image
+            dot_keys = []
+            timepoints = []
+            channel_locations = [] # trap locations change for each image so you really want to grab them
+            for index in indices_to_iter:
+                timepoint = index
+                timepoints.append(timepoint)
+                dot_keys.append(str(timepoint) + '/raw_coords')
+
+                barcode_data = read_from_db('barcode_locations', save_dir, position=position, timepoint=timepoint)
+                channel_location = barcode_data['trap_locations'][channel_no]
+                channel_locations.append(channel_location)
+
+            # loop over and filter dots that fall inside the trap
+            dot_data = []
+            with h5py.File(dots_filename, 'r') as f:
+                for i, key in enumerate(dot_keys, 0):
+                    single_array = f[key][:]
+                    indices = np.where(np.logical_and(single_array[:, 1] > channel_locations[i] - (trap_width//2),
+                                         single_array[:, 1] < channel_locations[i] + (trap_width//2)))[0]
+                    single_array_trap_filtered = single_array[indices]
+                    single_array_trap_filtered[:, 1] = single_array_trap_filtered[:, 1] - channel_locations[i] + trap_width//2 + (i * trap_width)
+                dot_data.append(single_array_trap_filtered)
+
+            dots = np.vstack(dot_data) 
+
 
             return {
                 'image': full_img,
                 'left_barcode': left_barcode_img,
-                'right_barcode': right_barcode_img
+                'right_barcode': right_barcode_img,
+                'dots': dots
             }
             
-            return None
-
-
         elif read_type == 'fluor':
             fluor_dir = save_dir / Path('Pos' + str(position)) / Path('fluor')
 
@@ -299,10 +326,11 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
             left_barcode_img = last_phase_img[int(left_barcode[1]): int(left_barcode[3]), int(left_barcode[0]): int(left_barcode[2])]
             right_barcode_img = last_phase_img[int(right_barcode[1]): int(right_barcode[3]), int(right_barcode[0]): int(right_barcode[2])]
 
-            if max_imgs is None:
+            if max_imgs is not None:
                 files_to_iter = fluor_filenames[-max_imgs:]
             else:
                 files_to_iter = fluor_filenames
+
 
             trap_width = param.Save.trap_width
             full_img = np.zeros((height, len(files_to_iter) * trap_width))
@@ -310,10 +338,38 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
                 fluor_slice = imread(filename)[:, channel_location - (trap_width//2) : channel_location + (trap_width//2)]
                 full_img[:, (i) * trap_width : (i+1) * trap_width] = fluor_slice
 
+            dots_filename = save_dir / Path('Pos' + str(position)) / Path('dots.hdf5')
+            # figure out dots on this image
+            dot_keys = []
+            timepoints = []
+            channel_locations = [] # trap locations change for each image so you really want to grab them
+            for filename in files_to_iter:
+                timepoint = int(filename.stem.split('_')[-1])
+                timepoints.append(timepoint)
+                dot_keys.append(str(timepoint) + '/raw_coords')
+
+                barcode_data = read_from_db('barcode_locations', save_dir, position=position, timepoint=timepoint)
+                channel_location = barcode_data['trap_locations'][channel_no]
+                channel_locations.append(channel_location)
+
+            # loop over and filter dots that fall inside the trap
+            dot_data = []
+            with h5py.File(dots_filename, 'r') as f:
+                for i, key in enumerate(dot_keys, 0):
+                    single_array = f[key][:]
+                    indices = np.where(np.logical_and(single_array[:, 1] > channel_locations[i] - (trap_width//2),
+                                         single_array[:, 1] < channel_locations[i] + (trap_width//2)))[0]
+                    single_array_trap_filtered = single_array[indices]
+                    single_array_trap_filtered[:, 1] = single_array_trap_filtered[:, 1] - channel_locations[i] + trap_width//2 + (i * trap_width)
+                dot_data.append(single_array_trap_filtered)
+
+            dots = np.vstack(dot_data) 
+
             return {
                 'image': full_img,
                 'left_barcode': left_barcode_img,
-                'right_barcode': right_barcode_img
+                'right_barcode': right_barcode_img,
+                'dots': dots
             }
 
             
