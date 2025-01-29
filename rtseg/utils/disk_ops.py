@@ -76,20 +76,31 @@ def write_files(event_data, event_type, param):
             cells_filename = position_dir / Path('cells.zarr')
             compressor = Zlib(level=6) # change compression level if you don't like the time it takes
             # TODO : set height and width later
-            height, width = event_data['image'].shape
-            if event_data['time'] == 0:
+            height, _ = event_data['image'].shape
+            num_blocks = param.BarcodeAndChannels.num_blocks_per_image
+            num_traps_per_block = param.BarcodeAndChannels.num_traps_per_block
+            trap_width = param.Save.trap_width
+            image = np.zeros((height, param.Save.trap_width * num_blocks * num_traps_per_block))
+            _, width = image.shape
+            if len(event_data['trap_locations_list']) == num_blocks * num_traps_per_block:
+                # loop over traps and crop and construct image
+                for i, loc in enumerate(event_data['trap_locations_list']):
+                    image[:, i * trap_width: (i+1) * trap_width] = event_data['image'][:, loc-(trap_width//2): loc+(trap_width//2)]
+
+
+            if event_data['timepoint'] == 0:
                 # intialize  a zarr to write into and then set the slices correctly            
                 cells_array = zarr.convenience.open(cells_filename, mode='a', shape=(1, height, width),
                                 chunks=(1, height, param.Save.trap_width), order='C', 
                                 dtype='uint8', compressor=compressor)
-                cells_array[0] = event_data['image'] # image will be a chopped channels image stitched together
+                cells_array[0] = image # image will be a chopped channels image stitched together
                 
             else:
                 # write into the zarr directly
                 cells_array = zarr.convenience.open(cells_filename, mode='a', shape=(1, height, width),
                                 chunks=(1, height, param.Save.trap_width), order='C', 
                                 dtype='uint8', compressor=compressor)
-                cells_array.append(event_data['image'][np.newaxis, :])
+                cells_array.append(image[np.newaxis, :])
         
         elif event_type == 'dot_coordinates':
             dots_filename = position_dir / Path('dots.hdf5')
@@ -185,7 +196,7 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
             n_slices, height, width = data.shape
             last_key = n_slices - 1
 
-            last_phase_img_filename = save_dir / Path('Pos' + str(filename)) / Path('phase') / Path('phase_' + str(last_key).zfill(4) + '.tiff')
+            last_phase_img_filename = save_dir / Path('Pos' + str(position)) / Path('phase') / Path('phase_' + str(last_key).zfill(4) + '.tiff')
             barcode_data = read_from_db('barcode_locations', save_dir, position=position, timepoint=last_key)
             
             channel_location = barcode_data['trap_locations'][channel_no]
@@ -212,11 +223,52 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
                 'right_barcode': right_barcode_img
             }
             
-        elif read_type == 'dots_by_trap':
+        elif read_type == 'dots_on_mask':
             # just read the hdf5 file and give dots for the whole trap
             #dots_path  = save_dir / Path('Pos' + str(position)) / Path('dots.hdf5')
             
             # read all the dots and index by trap
+
+                        
+            # read from the .zarr 
+            cells_filename = save_dir / Path('Pos' + str(position)) / Path('cells.zarr')
+
+            trap_width = param.Save.trap_width
+
+            data = zarr.convenience.open(cells_filename, mode='r')
+            n_slices, height, width = data.shape
+            last_key = n_slices - 1
+
+            last_phase_img_filename = save_dir / Path('Pos' + str(position)) / Path('phase') / Path('phase_' + str(last_key).zfill(4) + '.tiff')
+            barcode_data = read_from_db('barcode_locations', save_dir, position=position, timepoint=last_key)
+            
+            channel_location = barcode_data['trap_locations'][channel_no]
+            for i, barcode in enumerate(barcode_data['barcode_locations'], 0):
+                if (((barcode[0] + barcode[2])/2) > channel_location):
+                    break
+            left_barcode =  barcode_data['barcode_locations'][i-1]
+            right_barcode = barcode_data['barcode_locations'][i]
+            last_phase_img = imread(last_phase_img_filename)
+
+            left_barcode_img = last_phase_img[int(left_barcode[1]): int(left_barcode[3]), int(left_barcode[0]): int(left_barcode[2])]
+            right_barcode_img = last_phase_img[int(right_barcode[1]): int(right_barcode[3]), int(right_barcode[0]): int(right_barcode[2])]
+
+            if max_imgs is None:
+                full_img = data[:, :, (channel_no) * trap_width : (channel_no+1) * trap_width]
+                full_img = np.hstack(full_img)
+            else:
+                full_img = data[-max_imgs:, :, channel_no * trap_width: (channel_no+1) * trap_width]
+                full_img = np.hstack(full_img)
+
+            
+            
+
+            return {
+                'image': full_img,
+                'left_barcode': left_barcode_img,
+                'right_barcode': right_barcode_img
+            }
+            
             return None
 
 

@@ -58,6 +58,7 @@ BarcodeAndChannels:
     - 256
     - 800
   num_traps_per_block: 14
+  num_blocks_per_image: 2
   distance_between_traps: 65 
   architecture: 'YOLOv3'
   model_path: '/mnt/sda1/REALTIME/network_expts/barcode_expts/2025-01-17_13-26-07/model.pth'
