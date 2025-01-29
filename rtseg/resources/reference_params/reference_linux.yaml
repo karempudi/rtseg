@@ -5,6 +5,12 @@ Hardware:
 Save:
   trap_width: 80
 
+Forkplots:
+  pixel_size: 0.046
+  bin_scale: 20
+  heatmap_threshold: 0.99
+
+
 Segmentation:
   type: 'dual' # if dual predicts, 2 channels at once, if single predicts one item at a time
   architecture: 'Unet' # Network type used for cell seg

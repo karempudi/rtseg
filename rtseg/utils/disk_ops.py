@@ -6,6 +6,7 @@ from skimage.io import imsave, imread
 import zarr
 from numcodecs import Zlib
 from rtseg.utils.db_ops import read_from_db
+from rtseg.cells.plotting import generate_fork_plot, generate_abins_lbins
 from tifffile import imwrite # used for finer compression things
 import h5py
 import pandas as pd
@@ -372,7 +373,72 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
                 'dots': dots
             }
 
-            
+        elif read_type == 'all_forks':
+
+            forks_filenames = [position_dir / Path('forks.csv') for position_dir in list(save_dir.glob('Pos*'))]
+            dataframes = [pd.read_csv(filename) for filename in forks_filenames]
+            data = pd.concat(dataframes, ignore_index=True)
+
+            areas = data['area'].to_numpy()
+            lengths = data['length'].to_numpy()
+            longs = data['normalized_internal_x'].to_numpy()
+            counts = data['normalization_counts'].to_numpy()
+
+            bin_scale = param.Forkplots.bin_scale
+            heatmap_threshold = param.Forkplots.heatmap_threshold
+            pixel_size = param.Forkplots.pixel_size
+
+            heatmap, mean_cell_lengths, extent = generate_fork_plot(areas, lengths, longs, counts,
+                            bin_scale=bin_scale,
+                            pixel_size=pixel_size,
+                            heatmap_threshold=heatmap_threshold)
+
+            return {
+                'heatmap': heatmap,
+                'mean_cell_lengths': mean_cell_lengths,
+                'extent': extent
+            }
+
+        elif read_type == 'single_trap_data_forks':
+
+            bin_scale = param.Forkplots.bin_scale
+            heatmap_threshold = param.Forkplots.heatmap_threshold
+            pixel_size = param.Forkplots.pixel_size
+
+ 
+            all_forks_filenames = [position_dir / Path('forks.csv') for position_dir in list(save_dir.glob('Pos*'))]
+            dataframes = [pd.read_csv(filename) for filename in all_forks_filenames]
+            all_data = pd.concat(dataframes, ignore_index=True)
+
+            abins, lbins = generate_abins_lbins(all_data['area'].to_numpy(),
+                                    all_data['length'].to_numpy(),
+                                    all_data['normalized_internal_x'].to_numpy(),
+                                    pixel_size=pixel_size,
+                                    bin_scale=bin_scale)
+
+
+            forks_filename = save_dir / Path('Pos' + str(position)) / Path('forks.csv')
+            data = pd.read_csv(forks_filename)
+
+
+            # filter for trap no
+            trap_data = data[data['trap'] == channel_no]
+
+            areas = trap_data['area'].to_numpy()
+            lengths = trap_data['length'].to_numpy()
+            longs = trap_data['normalized_internal_x'].to_numpy()
+            counts = trap_data['normalization_counts'].to_numpy()
+            heatmap, mean_cell_lengths, extent = generate_fork_plot(areas, lengths, longs, counts, abins=abins, lbins=lbins,
+                            bin_scale=bin_scale,
+                            pixel_size=pixel_size,
+                            heatmap_threshold=heatmap_threshold)
+
+            return {
+                'heatmap': heatmap,
+                'mean_cell_lengths': mean_cell_lengths,
+                'extent': extent
+            }
+
 
     except Exception as e:
         sys.stdout.write(f"Reading data failed due to {e} for {read_type} ...\n")
