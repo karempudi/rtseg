@@ -1,0 +1,105 @@
+
+Hardware:
+  device: 'cuda:0'
+
+Save:
+  trap_width: 80
+
+Forkplots:
+  pixel_size: 0.046
+  bin_scale: 20
+  heatmap_threshold: 0.99
+
+
+Segmentation:
+  type: 'dual' # if dual predicts, 2 channels at once, if single predicts one item at a time
+  architecture: 'Unet' # Network type used for cell seg
+  output:
+    - 'cells'
+    - 'channels'
+  model_paths: # list .pt or .pth file containing network weights, 
+    both: 'C:\\Users\\elflab\\Documents\\Praneeth\\models\\seg_expts\\2025-01-22_13-53-51\\model.pth'
+    cells: # fill in if you have different model
+    channels: # fill in if you have different model
+  thresholds:
+    cells: 
+      probability: 0.85
+    channels:
+      probability: 0.5
+  
+  transformations:
+    before_type: 'UnetTestTransforms' # write something compatible with networks above
+    after_type: 'PostSegTransforms' # write soemething compatible with networks above # not used for now
+  model_params:
+    channels_by_scale:
+      - 1
+      - 32
+      - 64
+      - 128
+      - 256
+    num_outputs: 2
+    upsample_type: 'transpose_conv'
+    feature_fusion_type: 'concat' 
+
+Dots:
+  min_spot_area: 0.0
+  max_axes_ratio:  1.7
+  wavelet_plane_no: 1
+  noise_threshold: 3.0
+
+Events:
+  path: ''
+
+Logging:
+  to_file: True
+  to_console: True
+
+
+
+BarcodeAndChannels:
+  thresholds:
+    conf: 0.50
+    iou: 0.50
+  img_size:
+    - 256
+    - 800
+  num_traps_per_block: 14
+  num_blocks_per_image: 2
+  distance_between_traps: 65 
+  architecture: 'YOLOv3'
+  model_path: 'C:\\Users\\elflab\\Documents\\Praneeth\\models\\barcode_expts\\2025-01-17_13-26-07\\model.pth'
+  batch_size: 1
+  transformations:
+    before_type: 'YoloLiveAugmentations'
+    after_type: 'YoloLiveUnAgumentations'
+  model_params:
+    num_classes: 1
+    anchors: 
+      number: 9
+      sizes:
+      - - 19
+        - 168
+      - - 21
+        - 168
+      - - 29
+        - 178
+      - - 11
+        - 130
+      - - 11
+        - 131
+      - - 15
+        - 165
+      - - 6
+        - 115
+      - - 7
+        - 115
+      - - 7
+        - 125
+      strides:
+        - - 32
+          - 32
+        - - 16
+          - 16
+        - - 8
+          - 8
+    
