@@ -85,8 +85,8 @@ Training:
     every: 50 # save model, optimizer state and epoch number every 10 epochs
 
 
-  nEpochs: 100
-  batch_size: 16
+  nEpochs: 200
+  batch_size: 32
   num_workers: 4
   val_batch_size: 4
 

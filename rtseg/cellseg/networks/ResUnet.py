@@ -232,4 +232,3 @@ class ResUnet(nn.Module):
             return semantic_cells, vf, semantic_channels
 
         return semantic_cells, vf
-

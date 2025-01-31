@@ -288,7 +288,7 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
                                          single_array[:, 1] < channel_locations[i] + (trap_width//2)))[0]
                     single_array_trap_filtered = single_array[indices]
                     single_array_trap_filtered[:, 1] = single_array_trap_filtered[:, 1] - channel_locations[i] + trap_width//2 + (i * trap_width)
-                dot_data.append(single_array_trap_filtered)
+                    dot_data.append(single_array_trap_filtered)
 
             dots = np.vstack(dot_data) 
 
@@ -362,7 +362,7 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
                                          single_array[:, 1] < channel_locations[i] + (trap_width//2)))[0]
                     single_array_trap_filtered = single_array[indices]
                     single_array_trap_filtered[:, 1] = single_array_trap_filtered[:, 1] - channel_locations[i] + trap_width//2 + (i * trap_width)
-                dot_data.append(single_array_trap_filtered)
+                    dot_data.append(single_array_trap_filtered)
 
             dots = np.vstack(dot_data) 
 

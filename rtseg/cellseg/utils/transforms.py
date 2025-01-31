@@ -21,6 +21,13 @@ def h_flip(image):
 def rot90(image, factor):
     return np.ascontiguousarray(np.rot90(image, factor, axes = [1, 2]))
 
+def normalize99(phase, lower=0.01, upper=99.99):
+    phase = np.array(phase).astype(np.float32)
+    phase_copy = phase.copy()
+    return np.interp(phase_copy, 
+            (np.percentile(phase_copy, lower), np.percentile(phase_copy, upper)), (0, 1))
+
+
 
 def random_crop_coords(height, width, crop_height, crop_width):
     h_start = random.random()
@@ -128,7 +135,18 @@ class ToFloat:
         else:
             return image, mask, vf
 
+class Normalize:
 
+    def __init__(self):
+        pass
+
+    def __call__(self, image, mask, vf = None):
+        image = normalize99(image)
+
+        if vf is None:
+            return image, mask
+        else:
+            return image, mask, vf
 
 class HorizontalFlip:
     def __init__(self, p):
@@ -221,6 +239,7 @@ class AddVectorField:
     def __call__(self, image, mask, vf = None):
         
         image = transforms.ToTensor()(image)
+        image = image.float()
         mask = np.array(mask).astype('float32')
         mask = label(mask)
 
@@ -244,20 +263,22 @@ class changedToPIL:
 
 train_transform = Compose([
     changedToPIL(),
-    RandomCrop(320),
-    RandomRotation(20.0),
-    RandomAffine(scale=(0.75, 1.25), shear=(-30, 30, -30, 30)),
+    RandomCrop(512),
+    RandomRotation(10.0),
+    RandomAffine(scale=(0.5, 1.5), shear=(-10, 10, -10, 10)),
     VerticalFlip(p = 0.25),
     HorizontalFlip(p = 0.25),
     #RandomBrightness(gamma_range=(0.7, 1.4), brightness_add_range=(-2500.0, 5000.0)),
+    Normalize(),
     AddVectorField(kernel_size=11), # always calculate vfs in the end 
-    ToFloat(65535),
+    #ToFloat(65535),
 ])
 
 eval_transform = Compose([
     AddDimension(),
+    Normalize(),
     #RandomBrightness(gamma_range=(0.7, 1.4), brightness_add_range=(-2500.0, 5000.0)),
-    ToFloat(65535)
+    #ToFloat(65535)
 ])
 
 all_transforms = {
