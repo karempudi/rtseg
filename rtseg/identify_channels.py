@@ -71,7 +71,8 @@ def detect_barcodes(model, anchors, strides, image, model_img_size,
         print(f"Barcodes {len(bboxes_final)} on {image.shape} detected")
     return bboxes_final
 
-def get_channel_locations(image, bboxes, num_traps_per_block=14, distance_between_traps=23):
+def get_channel_locations(image, bboxes, num_traps_per_block=14, distance_between_traps=23,
+            min_row=400, max_row=800, peak_prominences=200):
     """
     Returns a dictionary where keys are index of the bbox in the bboxes list and values
     are an array of numbers where the elements are positions of the channels
@@ -79,35 +80,32 @@ def get_channel_locations(image, bboxes, num_traps_per_block=14, distance_betwee
     It also returns which of the bboxes are used to pull traps from its left side.
 
     Arguments:
-        image: phase image
+        image: segmented channels mask
         bboxes: the bboxes_final you get from detect_barcode function above
         num_traps_per_block (int): used to index into the peaks to pick up centers of traps
         distance_between_channels (int): used for peak finding
 
     Re
     """
-    channel_locations = dict()
 
     #bboxes_centers = [(bbox[0] + bbox[2])/2 for bbox in bboxes]
 
-    hist = np.sum(image, axis=0)
-    peaks, _ = find_peaks(hist, distance=distance_between_traps)
+    hist = np.sum(image[min_row:max_row, :], axis=0)
+    peaks, _ = find_peaks(hist, distance=distance_between_traps, prominence=peak_prominences)
 
-    bboxes_taken = [False for bbox in bboxes]
+    #bboxes_taken = [False for bbox in bboxes]
     bboxes_bounds = [(bbox[0], bbox[2]) for bbox in bboxes]
+
+    channel_locations = []
 
     for peak_idx, peak in enumerate(peaks, 0):
         for i, bbox_bound in enumerate(bboxes_bounds):
             if peak >= bbox_bound[0] and peak <= bbox_bound[1]:
-                #print(peak, peak_idx,"--->", bbox_bound, i)
-                try:
-                    channel_locations[i] = peaks[peak_idx-num_traps_per_block: peak_idx]
-                    bboxes_taken[i] = True
-                except Exception:
-                    pass
-                finally:
-                    if bboxes_taken[i] is False:
-                        channel_locations[i] = np.array([])
+                # the peak is somehow in the bbox, probably an artifact
+                # ignore
+                pass
+            else:
+                channel_locations.append(peak)
 
-    return channel_locations, bboxes_taken
+    return sorted(np.unique(channel_locations).tolist())
 

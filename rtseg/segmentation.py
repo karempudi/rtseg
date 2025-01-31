@@ -180,16 +180,24 @@ def live_segment(datapoint, model, param, visualize=False):
         bboxes_final = post_barcode_transformations(yolo_datapoint)
         bboxes_final = sorted(bboxes_final, key=lambda x: x[0]) # sort using the top left corner in x axis
 
+        channel_mask = seg_pred[1] [:raw_shape[0], :raw_shape[1]] > param.Segmentation.thresholds.channels.probability
+
         # Now figure out channel locations
-        trap_locations, bboxes_taken = get_channel_locations(datapoint['phase'], bboxes_final,
-                             param.BarcodeAndChannels.num_traps_per_block,
-                             param.BarcodeAndChannels.distance_between_traps)
-        num_traps = 0
-        trap_locations_list = []
-        for barcode_idx, left_of_barcode_traps in trap_locations.items():
-            if len(left_of_barcode_traps) == param.BarcodeAndChannels.num_traps_per_block:
-                trap_locations_list.extend(left_of_barcode_traps.tolist())
-                num_traps += len(left_of_barcode_traps)
+        trap_locations  = get_channel_locations(channel_mask, bboxes_final,
+                             num_traps_per_block=param.BarcodeAndChannels.num_traps_per_block,
+                             distance_between_traps=param.BarcodeAndChannels.distance_between_traps,
+                             min_row=param.BarcodeAndChannels.channel_mask[0],
+                             max_row=param.BarcodeAndChannels.channel_mask[1],
+                             peak_prominences=param.BarcodeAndChannels.peak_prominences,
+                             )
+        #num_traps = 0
+        #trap_locations_list = []
+        #for barcode_idx, left_of_barcode_traps in trap_locations.items():
+        #    if len(left_of_barcode_traps) == param.BarcodeAndChannels.num_traps_per_block:
+        #        trap_locations_list.extend(left_of_barcode_traps.tolist())
+        #        num_traps += len(left_of_barcode_traps)
+        if len(trap_locations) != param.BarcodeAndChannels.num_traps_per_block * param.BarcodeAndChannels.num_blocks_per_image:
+            trap_locations = []
 
         
 
@@ -207,12 +215,13 @@ def live_segment(datapoint, model, param, visualize=False):
         return {
             'phase': datapoint['phase'].astype('uint16'),
             'fluor': datapoint['fluor'],
+            'channel_mask': channel_mask,
             'position': datapoint['position'],
             'timepoint': datapoint['timepoint'],
             'barcode_locations': bboxes_final,
             'seg_mask': seg_mask,
-            'trap_locations_list': trap_locations_list,
-            'num_traps': num_traps,
+            'trap_locations_list': trap_locations,
+            'num_traps': len(trap_locations),
             'error': False
         }
 

@@ -43,9 +43,9 @@ Segmentation:
 
 Dots:
   min_spot_area: 0.0
-  max_axes_ratio:  1.7
+  max_axes_ratio:  2.0
   wavelet_plane_no: 1
-  noise_threshold: 3.0
+  noise_threshold: 3.7
 
 Events:
   path: ''
@@ -65,7 +65,11 @@ BarcodeAndChannels:
     - 800
   num_traps_per_block: 14
   num_blocks_per_image: 2
-  distance_between_traps: 65 
+  distance_between_traps: 65
+  peak_prominences: 200
+  channel_mask:
+    - 400
+    - 800 
   architecture: 'YOLOv3'
   model_path: 'C:\\Users\\elflab\\Documents\\Praneeth\\models\\barcode_expts\\2025-01-17_13-26-07\\model.pth'
   batch_size: 1
