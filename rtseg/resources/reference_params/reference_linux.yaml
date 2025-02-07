@@ -9,6 +9,9 @@ Forkplots:
   pixel_size: 0.046
   bin_scale: 20
   heatmap_threshold: 0.99
+  min_length: 0.44 
+  arb_div_area: 2.5
+  init_area_cv: 0.11
 
 
 Segmentation:
