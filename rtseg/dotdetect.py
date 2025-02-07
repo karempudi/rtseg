@@ -26,12 +26,18 @@ def compute_dot_coordinates(fluor_img, cell_mask, param):
 
 
     spot_filtered = [item for item in spot_stats if item.area > min_spot_area]
+
     #TODO do spots filtering well
     #spot_axes_ratio = np.array([spot.axis_major_length / spot.axis_minor_length for spot in spot_filtered])
     #spot_areas = np.array([spot.area for spot in spot_filtered])
     ## indices in spot filtered based on area
     dot_coords = [spot.centroid_weighted for spot in spot_filtered]
 
+    if len(dot_coords) == 0:
+        return {
+            'raw_coords' : np.array([]),
+            'rotated_coords': np.array([]),
+        }
     dot_coords_np = np.array(dot_coords)
 
     dots_on_raw_img = np.zeros_like(dot_coords_np)

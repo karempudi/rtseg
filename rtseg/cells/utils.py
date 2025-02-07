@@ -119,7 +119,7 @@ def compute_arc_length(fit_coeff, first_point, last_point):
         arc_length = abs(np.diff(transf_points * sqrt_exp + np.log(transf_points + sqrt_exp)) / (4 * abs(fit_coeff[0])))
     else:
         fit_points = [fit_coeff[1] * x_0 + fit_coeff[2], fit_coeff[1] * x_end + fit_coeff[2]]
-        arc_length = math.sqrt((x_0 - x_end) ** 2 + (fit_points[0] - fit_points[1]) ** 2)
+        arc_length = np.array([math.sqrt((x_0 - x_end) ** 2 + (fit_points[0] - fit_points[1]) ** 2)])
 
     return arc_length
 
