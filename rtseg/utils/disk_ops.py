@@ -6,7 +6,7 @@ from skimage.io import imsave, imread
 import zarr
 from numcodecs import Zlib
 from rtseg.utils.db_ops import read_from_db
-from rtseg.cells.plotting import generate_fork_plot, generate_abins_lbins
+from rtseg.cells.plotting import generate_fork_plot, generate_abins_lbins, get_bulk_init_area, slice_fork_plot_around_init
 from tifffile import imwrite # used for finer compression things
 import h5py
 import pandas as pd
@@ -387,16 +387,34 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
             bin_scale = param.Forkplots.bin_scale
             heatmap_threshold = param.Forkplots.heatmap_threshold
             pixel_size = param.Forkplots.pixel_size
+            min_length = param.Forkplots.min_length
+            arb_div_area = param.Forkplots.arb_div_area
+            init_area_cv = param.Forkplots.init_area_cv 
 
-            heatmap, mean_cell_lengths, extent = generate_fork_plot(areas, lengths, longs, counts,
+            heatmap, mean_cell_lengths, abins, lbins, extent = generate_fork_plot(areas, lengths, longs, counts,
                             bin_scale=bin_scale,
                             pixel_size=pixel_size,
                             heatmap_threshold=heatmap_threshold)
 
+            init_area = get_bulk_init_area(areas, counts, longs, lengths, min_length=min_length, 
+                                           pixel_size=pixel_size, arb_div_area=arb_div_area)
+            
+            area_bins_around_init, lbins_around_init, heatmap_around_init, mean_cell_lengths_around_init, abins_inds_around_init = slice_fork_plot_around_init(abins, lbins, heatmap, mean_cell_lengths, init_area, init_area_cv)
+
             return {
+                #Maybe do not need to pass full fork plot parameters, 
+                #but will do so for now so we do not need to rewrite 
+                #code if we end up using those instead of the sliced 
+                #fork plots
                 'heatmap': heatmap,
                 'mean_cell_lengths': mean_cell_lengths,
-                'extent': extent
+                'extent': extent,
+                'area_bins_around_init': area_bins_around_init,
+                'lbins_around_init': lbins_around_init, 
+                'heatmap_around_init': heatmap_around_init,
+                'mean_cell_lengths_around_init': mean_cell_lengths_around_init,
+                'abins_inds_around_init': abins_inds_around_init
+
             }
 
         elif read_type == 'single_trap_data_forks':
