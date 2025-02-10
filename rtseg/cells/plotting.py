@@ -163,4 +163,4 @@ def slice_fork_plot_around_init(abins, lbins, heatmap, mean_cell_lengths, init_a
 
     heatmap_around_init = heatmap[np.ix_(abins_inds_around_init, lbins_inds_around_init)]
 
-    return area_bins_around_init, lbins_around_init, heatmap_around_init, mean_cell_lengths_around_init, abins_inds_around_init
+    return area_bins_around_init, lbins_around_init, heatmap_around_init, mean_cell_lengths_around_init, abins_inds_around_init, lbins_inds_around_init

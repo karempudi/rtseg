@@ -399,8 +399,8 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
             init_area = get_bulk_init_area(areas, counts, longs, lengths, min_length=min_length, 
                                            pixel_size=pixel_size, arb_div_area=arb_div_area)
             
-            area_bins_around_init, lbins_around_init, heatmap_around_init, mean_cell_lengths_around_init, abins_inds_around_init = slice_fork_plot_around_init(abins, lbins, heatmap, mean_cell_lengths, init_area, init_area_cv)
-
+            area_bins_around_init, lbins_around_init, heatmap_around_init, mean_cell_lengths_around_init, abins_inds_around_init, lbins_inds_around_init = slice_fork_plot_around_init(abins, lbins, heatmap, mean_cell_lengths, init_area, init_area_cv)
+            
             return {
                 #Maybe do not need to pass full fork plot parameters, 
                 #but will do so for now so we do not need to rewrite 
@@ -409,11 +409,14 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
                 'heatmap': heatmap,
                 'mean_cell_lengths': mean_cell_lengths,
                 'extent': extent,
+                'init_area': init_area,
                 'area_bins_around_init': area_bins_around_init,
                 'lbins_around_init': lbins_around_init, 
                 'heatmap_around_init': heatmap_around_init,
                 'mean_cell_lengths_around_init': mean_cell_lengths_around_init,
-                'abins_inds_around_init': abins_inds_around_init
+                'abins_inds_around_init': abins_inds_around_init,
+                'lbins_inds_around_init': lbins_inds_around_init
+
 
             }
 
@@ -423,7 +426,7 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
             heatmap_threshold = param.Forkplots.heatmap_threshold
             pixel_size = param.Forkplots.pixel_size
 
- 
+            #Add so that you do not need to regenerate the bins after having done the full one
             all_forks_filenames = [position_dir / Path('forks.csv') for position_dir in list(save_dir.glob('Pos*'))]
             dataframes = [pd.read_csv(filename) for filename in all_forks_filenames]
             all_data = pd.concat(dataframes, ignore_index=True)
@@ -446,15 +449,15 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
             lengths = trap_data['length'].to_numpy()
             longs = trap_data['normalized_internal_x'].to_numpy()
             counts = trap_data['normalization_counts'].to_numpy()
-            heatmap, mean_cell_lengths, extent = generate_fork_plot(areas, lengths, longs, counts, abins=abins, lbins=lbins,
+            heatmap_trap, mean_cell_lengths_trap, _, _, _ = generate_fork_plot(areas, lengths, longs, counts, abins=abins, lbins=lbins,
                             bin_scale=bin_scale,
                             pixel_size=pixel_size,
                             heatmap_threshold=heatmap_threshold)
 
             return {
-                'heatmap': heatmap,
-                'mean_cell_lengths': mean_cell_lengths,
-                'extent': extent
+                'heatmap_trap': heatmap_trap,
+                'mean_cell_lengths_trap': mean_cell_lengths_trap,
+                #'extent': extent
             }
 
 
