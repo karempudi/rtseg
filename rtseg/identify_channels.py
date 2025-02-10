@@ -91,7 +91,7 @@ def get_channel_locations(image, bboxes, num_traps_per_block=14, distance_betwee
     #bboxes_centers = [(bbox[0] + bbox[2])/2 for bbox in bboxes]
 
     hist = np.sum(image[min_row:max_row, :], axis=0)
-    peaks, _ = find_peaks(hist, distance=distance_between_traps, prominence=peak_prominences)
+    peaks, _ = find_peaks(hist, distance=distance_between_traps, prominence=peak_prominences, width=10)
 
     #bboxes_taken = [False for bbox in bboxes]
     bboxes_bounds = [(bbox[0], bbox[2]) for bbox in bboxes]

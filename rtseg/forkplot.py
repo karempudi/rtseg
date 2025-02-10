@@ -22,6 +22,9 @@ def compute_forkplot_stats(seg_mask, rotated_coords, position=0, timepoint=0,
     """
 
     data_for_forks = []
+    if len(rotated_coords) == 0:
+        return data_for_forks
+    
     try:
         cell_mask_rot = np.rot90(seg_mask).copy()
 
@@ -104,7 +107,4 @@ def compute_forkplot_stats(seg_mask, rotated_coords, position=0, timepoint=0,
         sys.stdout.write(f"Error {e} in computing fork plot stats Pos: {position}, timepoint: {timepoint}")
         sys.stdout.flush()
     finally:
-        if len(data_for_forks) == 0:
-            return None
-        else:
-            return data_for_forks
+        return data_for_forks
