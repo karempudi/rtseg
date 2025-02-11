@@ -12,6 +12,7 @@ Forkplots:
   min_length: 0.44 
   arb_div_area: 2.5
   init_area_cv: 0.11
+  polars: true # default saves to pandas table, which is slow
 
 
 Segmentation:
