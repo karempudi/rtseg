@@ -407,9 +407,9 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
 
             else:
                 # read parquet files
-                fork_filenames = glob.glob(str(save_dir) + 'Pos[0-9]*/forks.parquet')
+                fork_filenames = glob.glob(str(save_dir / Path('Pos[0-9]*/forks.parquet')))
                 columns_to_extract = ['area', 'length', 'normalized_internal_x', 'normalization_counts']
-                data = pl.read_parquet(fork_filenames, columns=columns_to_extract)
+                data = pl.read_parquet(fork_filenames, use_pyarrow=True, columns=columns_to_extract)
 
             areas = data['area'].to_numpy()
             lengths = data['length'].to_numpy()
