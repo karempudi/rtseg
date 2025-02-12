@@ -9,7 +9,9 @@ from rtseg.utils.db_ops import read_from_db
 from rtseg.cells.plotting import generate_fork_plot, generate_abins_lbins, get_bulk_init_area, slice_fork_plot_around_init
 from tifffile import imwrite # used for finer compression things
 import h5py
+import polars as pl
 import pandas as pd
+import glob
 
 def write_files(event_data, event_type, param):
     """
@@ -118,18 +120,42 @@ def write_files(event_data, event_type, param):
                 f.create_dataset(str(event_data['timepoint']) + '/rotated_coords', data=event_data['rotated_coords'])
         
         elif event_type == 'forkplot_data':
-            forks_filename = position_dir / Path('forks.csv')
+            if param.Forkplots.polars is False:
+                forks_filename = position_dir / Path('forks.csv')
 
-            if not forks_filename.exists():
-                header=True
-            else:
-                header=False
-            
-            if event_data is not None:
-                fork_stats_table = pd.DataFrame(event_data['fork_data'])
-                fork_stats_table.to_csv(forks_filename, mode='a', index=False, header=header)
-            else:
-                raise Exception("Fork plot data write failed")
+                if not forks_filename.exists():
+                    header=True
+                else:
+                    header=False
+                
+                if event_data is not None:
+                    fork_stats_table = pd.DataFrame(event_data['fork_data'])
+                    fork_stats_table.to_csv(forks_filename, mode='a', index=False, header=header)
+                else:
+                    raise Exception("Fork plot data write failed")
+            elif param.Forkplots.polars is True:
+                forks_filename = position_dir / Path('forks.parquet')
+
+                fork_data = event_data['fork_data']
+                if len(fork_data) == 0:
+                    return
+                else:
+                    # make dataframe in polars
+                    d = {key: [] for key in fork_data[0].keys()}
+                    for i in range(len(fork_data)):
+                        for key, value in fork_data[i].items():
+                            d[key].append(value)
+                    df = pl.DataFrame(d)
+                    # may be there is a better way.. faster for larger dataset
+                    if forks_filename.exists():
+                        existing_df = pl.read_parquet(forks_filename)
+                        concat_df = pl.concat([existing_df, df])
+
+                        concat_df.write_parquet(forks_filename, partition_by="trap")
+
+                    else:
+                        df.write_parquet(forks_filename, partition_by="trap")
+
 
 
 
@@ -374,15 +400,22 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
             }
 
         elif read_type == 'all_forks':
+            if param.Forkplots.polars is False:
+                forks_filenames = [position_dir / Path('forks.csv') for position_dir in list(save_dir.glob('Pos*'))]
+                dataframes = [pd.read_csv(filename) for filename in forks_filenames]
+                data = pd.concat(dataframes, ignore_index=True)
 
-            forks_filenames = [position_dir / Path('forks.csv') for position_dir in list(save_dir.glob('Pos*'))]
-            dataframes = [pd.read_csv(filename) for filename in forks_filenames]
-            data = pd.concat(dataframes, ignore_index=True)
+            else:
+                # read parquet files
+                fork_filenames = glob.glob(str(save_dir / Path('Pos[0-9]*/forks.parquet')))
+                columns_to_extract = ['area', 'length', 'normalized_internal_x', 'normalization_counts']
+                data = pl.read_parquet(fork_filenames, use_pyarrow=True, columns=columns_to_extract)
 
             areas = data['area'].to_numpy()
             lengths = data['length'].to_numpy()
             longs = data['normalized_internal_x'].to_numpy()
             counts = data['normalization_counts'].to_numpy()
+
 
             bin_scale = param.Forkplots.bin_scale
             heatmap_threshold = param.Forkplots.heatmap_threshold
@@ -416,7 +449,6 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
                 'mean_cell_lengths_around_init': mean_cell_lengths_around_init,
                 'abins_inds_around_init': abins_inds_around_init,
                 'lbins_inds_around_init': lbins_inds_around_init
-
 
             }
 

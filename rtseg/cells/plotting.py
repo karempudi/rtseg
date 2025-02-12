@@ -2,7 +2,7 @@
 import numpy as np
 from scipy.special import erf
 from scipy.optimize import curve_fit
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import warnings 
 warnings.filterwarnings("ignore", message="Mean of empty slice")
 
