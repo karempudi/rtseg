@@ -62,7 +62,7 @@ Logging:
 
 BarcodeAndChannels:
   thresholds:
-    conf: 0.50
+    conf: 0.25
     iou: 0.50
   img_size:
     - 256

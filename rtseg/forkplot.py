@@ -46,23 +46,28 @@ def compute_forkplot_stats(seg_mask, rotated_coords, position=0, timepoint=0,
 
 
         # figureing out trap number
-        trap_locations_left = [loc-trap_width for loc in trap_locations]
-        trap_locations_right = [loc+trap_width for loc in trap_locations]
+
+        trap_locations_rot = sorted([cell_mask_rot.shape[0]-loc for loc in trap_locations])
+
+        trap_locations_left = [loc-trap_width for loc in trap_locations_rot]
+        trap_locations_right = [loc+trap_width for loc in trap_locations_rot]
+
 
         # iterate over unique cell labels, grab and compute appropriate things
         for i, single_cell_label in enumerate(unique_cell_labels, 0):
             if single_cell_label != 0: # 0 is for background label
+                trap_no = None
                 dot_idxs = np.where(dot_labels == single_cell_label)[0]
                 # used as normalization 
                 dots_per_cell = dot_counts[i]
                 # grab the props of cell by indexing into the cell props array
                 cell_prop = props[single_cell_label-1]
+
                 left_index = bisect.bisect_left(trap_locations_left, cell_prop.centroid[0])
                 right_index = bisect.bisect_right(trap_locations_right, cell_prop.centroid[0])
                 if left_index - 1 == right_index:
                     trap_no = traps_per_img-right_index-1
-                else:
-                    trap_no = None
+
                 fit_coeff = cell_prop.fit_coeff
                 poles = cell_prop.poles
                 #img = cell_prop.image
@@ -88,20 +93,21 @@ def compute_forkplot_stats(seg_mask, rotated_coords, position=0, timepoint=0,
                     #plt.plot(local_y, local_x, 'go')
                     #plt.plot(projected_point[0, 0], projected_point[0, 1], 'b*')
                     #print(distance_to_pole_along_arc[0], arc_length)
-                    dot_datapoint = {'position': position,
-                                    'timepoint': timepoint,
-                                    'trap': trap_no,
-                                    'cell_label': single_cell_label,
-                                    'area': cell_prop.area,
-                                    'length': arc_length,
-                                    'normalization_counts': dots_per_cell,
-                                    'internal_coord': (distance_to_pole_along_arc[0], internal_y[0]),
-                                    'normalized_internal_x': distance_to_pole_along_arc[0]/arc_length,
-                                    'bbox': bbox,
-                                    'global_coords': (dot_x, dot_y),
-                                    'local_coords': (local_x, local_y),
-                                    }
-                    data_for_forks.append(dot_datapoint)
+                    if trap_no is not None:
+                        dot_datapoint = {'position': position,
+                                        'timepoint': timepoint,
+                                        'trap': trap_no,
+                                        'cell_label': single_cell_label,
+                                        'area': cell_prop.area,
+                                        'length': arc_length,
+                                        'normalization_counts': dots_per_cell,
+                                        'internal_coord': (distance_to_pole_along_arc[0], internal_y[0]),
+                                        'normalized_internal_x': distance_to_pole_along_arc[0]/arc_length,
+                                        'bbox': bbox,
+                                        'global_coords': (dot_x, dot_y),
+                                        'local_coords': (local_x, local_y),
+                                        }
+                        data_for_forks.append(dot_datapoint)
     
     except Exception as e:
         sys.stdout.write(f"Error {e} in computing fork plot stats Pos: {position}, timepoint: {timepoint}")
