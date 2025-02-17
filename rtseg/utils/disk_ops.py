@@ -12,6 +12,7 @@ import h5py
 import polars as pl
 import pandas as pd
 import glob
+import os
 
 def write_files(event_data, event_type, param):
     """
@@ -400,6 +401,12 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
             }
 
         elif read_type == 'all_forks':
+
+            if os.name == 'nt':
+                use_pyarrow = True
+            else:
+                use_pyarrow = False
+
             if param.Forkplots.polars is False:
                 forks_filenames = [position_dir / Path('forks.csv') for position_dir in list(save_dir.glob('Pos*'))]
                 dataframes = [pd.read_csv(filename) for filename in forks_filenames]
@@ -409,7 +416,7 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
                 # read parquet files
                 fork_filenames = glob.glob(str(save_dir / Path('Pos[0-9]*/forks.parquet')))
                 columns_to_extract = ['area', 'length', 'normalized_internal_x', 'normalization_counts']
-                data = pl.read_parquet(fork_filenames, use_pyarrow=True, columns=columns_to_extract)
+                data = pl.read_parquet(fork_filenames, use_pyarrow=use_pyarrow, columns=columns_to_extract)
 
             areas = data['area'].to_numpy()
             lengths = data['length'].to_numpy()
@@ -458,10 +465,23 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
             heatmap_threshold = param.Forkplots.heatmap_threshold
             pixel_size = param.Forkplots.pixel_size
 
-            #Add so that you do not need to regenerate the bins after having done the full one
-            all_forks_filenames = [position_dir / Path('forks.csv') for position_dir in list(save_dir.glob('Pos*'))]
-            dataframes = [pd.read_csv(filename) for filename in all_forks_filenames]
-            all_data = pd.concat(dataframes, ignore_index=True)
+            if os.name == 'nt':
+                use_pyarrow = True
+            else:
+                use_pyarrow = False
+
+            if param.Forkplots.polars is False:
+                #Add so that you do not need to regenerate the bins after having done the full one
+                all_forks_filenames = [position_dir / Path('forks.csv') for position_dir in list(save_dir.glob('Pos*'))]
+                dataframes = [pd.read_csv(filename) for filename in all_forks_filenames]
+                all_data = pd.concat(dataframes, ignore_index=True)
+
+            else:
+                # read parquet files
+                fork_filenames = glob.glob(str(save_dir / Path('Pos[0-9]*/forks.parquet')))
+                columns_to_extract = ['area', 'length', 'normalized_internal_x', 'normalization_counts']
+                all_data = pl.read_parquet(fork_filenames, use_pyarrow=use_pyarrow, columns=columns_to_extract)
+
 
             abins, lbins = generate_abins_lbins(all_data['area'].to_numpy(),
                                     all_data['length'].to_numpy(),
@@ -469,13 +489,22 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
                                     pixel_size=pixel_size,
                                     bin_scale=bin_scale)
 
+            if param.Forkplots.polars is False:
+                forks_filename = save_dir / Path('Pos' + str(position)) / Path('forks.csv')
+                data = pd.read_csv(forks_filename)
 
-            forks_filename = save_dir / Path('Pos' + str(position)) / Path('forks.csv')
-            data = pd.read_csv(forks_filename)
+
+                # filter for trap no
+                trap_data = data[data['trap'] == channel_no]
+            else:
+                # set filename 
+                # read parquet files
+                forks_filename =  save_dir / Path('Pos' + str(position)) / Path('forks.parquet/trap=' + str(channel_no))
+                columns_to_extract = ['area', 'length', 'normalized_internal_x', 'normalization_counts']
+                trap_data = pl.read_parquet(forks_filename, use_pyarrow=use_pyarrow, columns=columns_to_extract)
 
 
-            # filter for trap no
-            trap_data = data[data['trap'] == channel_no]
+                # read data
 
             areas = trap_data['area'].to_numpy()
             lengths = trap_data['length'].to_numpy()
