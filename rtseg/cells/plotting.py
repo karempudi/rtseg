@@ -2,6 +2,7 @@
 import numpy as np
 from scipy.special import erf
 from scipy.optimize import curve_fit
+from scipy.stats import binned_statistic
 #import matplotlib.pyplot as plt
 import warnings 
 warnings.filterwarnings("ignore", message="Mean of empty slice")
@@ -164,3 +165,65 @@ def slice_fork_plot_around_init(abins, lbins, heatmap, mean_cell_lengths, init_a
     heatmap_around_init = heatmap[np.ix_(abins_inds_around_init, lbins_inds_around_init)]
 
     return area_bins_around_init, lbins_around_init, heatmap_around_init, mean_cell_lengths_around_init, abins_inds_around_init, lbins_inds_around_init
+
+
+def fast_generate_fork_plot(areas, lengths, longs, counts, bin_scale=20, 
+            pixel_size=0.046, heatmap_threshold=0.99, abins=None, lbins=None):
+    
+    areas = areas * (pixel_size ** 2)
+    lengths = lengths * pixel_size
+    longs = longs - 0.5
+    
+    if abins is None and lbins is None:
+        abins, lbins, (amin, amax), ainds = fast_abins_lbins(areas, lengths, longs, bin_scale=bin_scale)
+
+    #lnrbins = len(lbins)
+    #anrbins = lnrbins
+
+    #amin = np.quantile(areas, 0.005)
+    #amax = np.quantile(areas, 0.98)
+    #ainds = np.where(np.logical_and(areas >= amin, areas <= amax))[0]
+
+    areas_filtered = areas[ainds]
+    counts_filtered = counts[ainds]
+    longs_filtered = longs[ainds]
+    lengths_filtered = lengths[ainds]
+
+    heatmap, _, _ = np.histogram2d(areas_filtered, longs_filtered * lengths_filtered, bins=(abins, lbins))
+
+    normFactor, _, _ = binned_statistic(areas_filtered, 1.0/counts_filtered, statistic='sum', bins=abins)
+
+    heatmap = heatmap/normFactor[:, np.newaxis]
+    thresh = np.quantile(heatmap, heatmap_threshold)
+    heatmap[heatmap > thresh] = thresh
+
+    heatmap[np.isnan(heatmap)] = 0.0
+
+    mean_cell_lengths, _, _ = binned_statistic(areas_filtered, lengths_filtered, statistic='mean', bins=abins)
+
+    y = (abins[:-1] + abins[1:]) / 2
+    x = lbins
+
+    return heatmap, mean_cell_lengths, abins, lbins, (x, y)
+
+
+def fast_abins_lbins(areas, lengths, longs, bin_scale=20):
+    amin = np.quantile(areas, 0.005)
+    amax = np.quantile(areas, 0.98)
+
+    ainds = np.where(np.logical_and(areas >= amin, areas <= amax))[0]
+    rescaled_lengths = lengths * longs
+    rescaled_lengths_filtered = rescaled_lengths[ainds]
+
+    lmax = max(rescaled_lengths_filtered)
+    lmin = min(rescaled_lengths_filtered)
+    lminmax = max(lmax, -lmin)
+    lnrbins = round(2 * lminmax * bin_scale)
+    if lnrbins % 2 != 0:
+        lnrbins += 1
+    
+    lbins = np.linspace(-lminmax, lminmax, lnrbins)
+    anrbins = lnrbins
+    abins = np.linspace(amin, amax, anrbins)
+
+    return abins, lbins, (amin, amax), ainds
