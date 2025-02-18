@@ -7,6 +7,7 @@ import zarr
 from numcodecs import Zlib
 from rtseg.utils.db_ops import read_from_db
 from rtseg.cells.plotting import generate_fork_plot, generate_abins_lbins, get_bulk_init_area, slice_fork_plot_around_init
+from rtseg.cells.plotting import fast_generate_fork_plot
 from tifffile import imwrite # used for finer compression things
 import h5py
 import polars as pl
@@ -431,7 +432,7 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
             arb_div_area = param.Forkplots.arb_div_area
             init_area_cv = param.Forkplots.init_area_cv 
 
-            heatmap, mean_cell_lengths, abins, lbins, extent = generate_fork_plot(areas, lengths, longs, counts,
+            heatmap, mean_cell_lengths, abins, lbins, extent = fast_generate_fork_plot(areas, lengths, longs, counts,
                             bin_scale=bin_scale,
                             pixel_size=pixel_size,
                             heatmap_threshold=heatmap_threshold)
