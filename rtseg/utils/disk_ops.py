@@ -14,6 +14,8 @@ import polars as pl
 import pandas as pd
 import glob
 import os
+import pysal.lib
+from rtseg.cells.scoring import energy_dists
 
 def write_files(event_data, event_type, param):
     """
@@ -403,11 +405,10 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
 
         elif read_type == 'all_forks':
 
-            #if os.name == 'nt':
-            #    use_pyarrow = True
-            #else:
-            #    use_pyarrow = False
-            use_pyarrow = False
+            if os.name == 'nt':
+                use_pyarrow = True
+            else:
+                use_pyarrow = False
 
             if param.Forkplots.polars is False:
                 forks_filenames = [position_dir / Path('forks.csv') for position_dir in list(save_dir.glob('Pos*'))]
@@ -443,6 +444,15 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
             
             area_bins_around_init, lbins_around_init, heatmap_around_init, mean_cell_lengths_around_init, abins_inds_around_init, lbins_inds_around_init = slice_fork_plot_around_init(abins, lbins, heatmap, mean_cell_lengths, init_area, init_area_cv)
             
+            #Flat heatmap
+            flat_heatmap_init = heatmap_around_init.flatten()
+
+            #Calculation for Moran's I
+            moran_weight = pysal.lib.weights.lat2W(heatmap_around_init.shape[0], heatmap_around_init.shape[-1], rook=True)
+
+            #Calculation for energy test
+            e_dists = energy_dists(lbins_around_init, area_bins_around_init)
+
             return {
                 #Maybe do not need to pass full fork plot parameters, 
                 #but will do so for now so we do not need to rewrite 
@@ -457,8 +467,10 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
                 'heatmap_around_init': heatmap_around_init,
                 'mean_cell_lengths_around_init': mean_cell_lengths_around_init,
                 'abins_inds_around_init': abins_inds_around_init,
-                'lbins_inds_around_init': lbins_inds_around_init
-
+                'lbins_inds_around_init': lbins_inds_around_init,
+                'flat_heatmap_init': flat_heatmap_init,
+                'moran_weight': moran_weight,
+                'e_dists': e_dists
             }
 
         elif read_type == 'single_trap_data_forks':
@@ -467,11 +479,10 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
             heatmap_threshold = param.Forkplots.heatmap_threshold
             pixel_size = param.Forkplots.pixel_size
 
-            #if os.name == 'nt':
-            #    use_pyarrow = True
-            #else:
-            #    use_pyarrow = False
-            use_pyarrow = False
+            if os.name == 'nt':
+                use_pyarrow = True
+            else:
+                use_pyarrow = False
 
             if param.Forkplots.polars is False:
                 #Add so that you do not need to regenerate the bins after having done the full one
