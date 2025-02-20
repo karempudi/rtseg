@@ -403,10 +403,11 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
 
         elif read_type == 'all_forks':
 
-            if os.name == 'nt':
-                use_pyarrow = True
-            else:
-                use_pyarrow = False
+            #if os.name == 'nt':
+            #    use_pyarrow = True
+            #else:
+            #    use_pyarrow = False
+            use_pyarrow = False
 
             if param.Forkplots.polars is False:
                 forks_filenames = [position_dir / Path('forks.csv') for position_dir in list(save_dir.glob('Pos*'))]
@@ -466,10 +467,11 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
             heatmap_threshold = param.Forkplots.heatmap_threshold
             pixel_size = param.Forkplots.pixel_size
 
-            if os.name == 'nt':
-                use_pyarrow = True
-            else:
-                use_pyarrow = False
+            #if os.name == 'nt':
+            #    use_pyarrow = True
+            #else:
+            #    use_pyarrow = False
+            use_pyarrow = False
 
             if param.Forkplots.polars is False:
                 #Add so that you do not need to regenerate the bins after having done the full one
