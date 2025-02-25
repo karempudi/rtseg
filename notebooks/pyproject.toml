@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rtseg"
+authors = [
+    {name = "Praneeth Karempudi", email = "praneeth.karempudi@gmail.com"},
+]
+version = "0.0.1"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT-License"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+
+dependencies = [
+    "numpy",
+    "requests",
+    "torch",
+    "torchvision",
+    "scikit-image",
+    "docker",
+    "edt",
+    "opencv-python",
+    "scikit-learn",
+    "ncolor",
+    "dbscan",
+    "tqdm",
+    "types-tqdm",
+    "tensorboard",
+    "matplotlib",
+    "jupyter",
+    "pyside6",
+    "albumentations",
+    "art",
+    "zarr==2.11",
+    "h5py"
+]
+
+[project.scripts]
+rtseg-segtrain = "rtseg.cellseg.train:main"
+rtseg-dotdetect = "rtseg.forkplot_app:main"
+rtseg-oldsegtrain = "rtseg.oldseg.train:main"
+
+
+[project.optional-dependencies]
+linting = ["mypy", "ruff", "pre-commit", "types-PyYAML"]
+testing = ["pytest"]
+notebooks = ["jupyter", "notexbook-theme"]
+training = ["tensorboard", "ml_collections"]
+
+[tool.setuptools.packages]
+find = {}
+
+
+

@@ -168,7 +168,7 @@ def slice_fork_plot_around_init(abins, lbins, heatmap, mean_cell_lengths, init_a
 
 
 def fast_generate_fork_plot(areas, lengths, longs, counts, bin_scale=20, 
-            pixel_size=0.046, heatmap_threshold=0.99, abins=None, lbins=None):
+            pixel_size=0.046, heatmap_threshold=0.99, abins=None, lbins=None, ainds = None):
     
     areas = areas * (pixel_size ** 2)
     lengths = lengths * pixel_size
@@ -176,14 +176,13 @@ def fast_generate_fork_plot(areas, lengths, longs, counts, bin_scale=20,
     
     if abins is None and lbins is None:
         abins, lbins, (amin, amax), ainds = fast_abins_lbins(areas, lengths, longs, bin_scale=bin_scale)
-
+    else:
+        amin = np.quantile(areas, 0.005)
+        amax = np.quantile(areas, 0.98)
+        ainds = np.where(np.logical_and(areas >= amin, areas <= amax))[0]
     #lnrbins = len(lbins)
     #anrbins = lnrbins
-
-    #amin = np.quantile(areas, 0.005)
-    #amax = np.quantile(areas, 0.98)
-    #ainds = np.where(np.logical_and(areas >= amin, areas <= amax))[0]
-
+    
     areas_filtered = areas[ainds]
     counts_filtered = counts[ainds]
     longs_filtered = longs[ainds]
@@ -203,7 +202,7 @@ def fast_generate_fork_plot(areas, lengths, longs, counts, bin_scale=20,
 
     y = (abins[:-1] + abins[1:]) / 2
     x = lbins
-
+    
     return heatmap, mean_cell_lengths, abins, lbins, (x, y)
 
 
