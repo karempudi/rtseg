@@ -13,7 +13,6 @@ import h5py
 import polars as pl
 import pandas as pd
 import glob
-import os
 import pysal.lib
 from rtseg.cells.scoring import energy_dists
 
@@ -515,6 +514,13 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
                 # set filename 
                 # read parquet files
                 forks_filename =  save_dir / Path('Pos' + str(position)) / Path('forks.parquet/trap=' + str(channel_no))
+                if not forks_filename.exists():
+                    return {
+                        'heatmap_trap' : None,
+                        'mean_cell_lengths_trap': None,
+                        'position': position,
+                        'trap_no': channel_no,
+                    }
                 columns_to_extract = ['area', 'length', 'normalized_internal_x', 'normalization_counts']
                 trap_data = pl.read_parquet(forks_filename, use_pyarrow=use_pyarrow, columns=columns_to_extract)
 
@@ -533,6 +539,8 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
             return {
                 'heatmap_trap': heatmap_trap,
                 'mean_cell_lengths_trap': mean_cell_lengths_trap,
+                'position': position,
+                'trap_no': channel_no,
                 #'extent': extent
             }
 

@@ -4,7 +4,6 @@ import esda.moran
 from scipy import stats
 from scipy.spatial.distance import pdist, squareform 
 from scipy.fft import fft2, fftfreq
-import matplotlib.pyplot as plt
 
 
 def score_all_fork_plots(fork_data, moran_weights):
@@ -25,8 +24,8 @@ def score_all_fork_plots(fork_data, moran_weights):
     ks_results = np.full((nr_pos, nr_traps, 2), np.nan)
     sobolevs = np.full((nr_pos, nr_traps), np.nan)
     energies = np.full((nr_pos, nr_traps), np.nan)
-    print(nr_pos, nr_traps)
-    print(np.ndindex(nr_pos, nr_traps))
+    #print(nr_pos, nr_traps)
+    #print(np.ndindex(nr_pos, nr_traps))
     for (i, j) in (np.ndindex(nr_pos, nr_traps)):
         flat_trap_heatmap = flat_heatmaps_init_traps[:,i,j]
         trap_heatmap = heatmaps_init_trap[:,:,i,j]
@@ -149,17 +148,3 @@ def calc_mad_around_median(metric):
     above_medi = medi + mad
     
     return (medi, below_medi, above_medi) 
-
-def score_plotter(scores, median_mad, plot_range, x_fill, stat_type):
-    #Hook this to the window 
-    flat_scores = scores.flatten()
-    medi = median_mad[0]
-    mad_below_med = median_mad[1]
-    mad_above_med = median_mad[2]
-    fill_area = [mad_below_med, mad_below_med, mad_above_med, mad_above_med]
-    plt.figure()
-    plt.plot(plot_range, flat_scores, 'o')
-    plt.axhline(medi, linestyle='--', color='red')
-    plt.fill(x_fill, fill_area, color='red', alpha=0.25, zorder=3)
-    plt.xlabel('Channel')
-    plt.ylabel(stat_type)

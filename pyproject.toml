@@ -36,7 +36,9 @@ dependencies = [
     "albumentations",
     "art",
     "zarr==2.11",
-    "h5py"
+    "h5py",
+    "pysal",
+    "esda",
 ]
 
 [project.scripts]

@@ -65,12 +65,14 @@ def read_all_fork_data_around_init(param):
         flat_heatmap_around_init_pos_traps = np.zeros(shape=(heatmap_around_init_dims[0]*heatmap_around_init_dims[1], nr_pos, nr_traps))
 
         for (i, j) in (np.ndindex(nr_pos, nr_traps)):
-            
+
+
             pos = pos_inds[i]
             trap = trap_nrs[j] 
 
-            if trap not in all_trap_numbers:
-                #Dealing with completely empty traps
+            # check if the trap parquet exists
+            filename = Path(param.Save.directory) / Path('Pos' + str(pos)) / Path('forks.parquet/trap=' + str(trap))
+            if not filename.exists():
                 continue
 
             trap_inds = np.where((all_pos_numbers == pos) & (all_trap_numbers == trap))
