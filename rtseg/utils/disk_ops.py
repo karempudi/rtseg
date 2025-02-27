@@ -425,7 +425,7 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
             lengths = data['length'].to_numpy()
             longs = data['normalized_internal_x'].to_numpy()
             counts = data['normalization_counts'].to_numpy()
-
+            nr_dots = longs.size
 
             bin_scale = param.Forkplots.bin_scale
             heatmap_threshold = param.Forkplots.heatmap_threshold
@@ -470,7 +470,8 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
                 'lbins_inds_around_init': lbins_inds_around_init,
                 'flat_heatmap_init': flat_heatmap_init,
                 'moran_weight': moran_weight,
-                'e_dists': e_dists
+                'e_dists': e_dists,
+                'nr_dots': nr_dots
             }
 
         elif read_type == 'single_trap_data_forks':
@@ -520,6 +521,7 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
                         'mean_cell_lengths_trap': None,
                         'position': position,
                         'trap_no': channel_no,
+                        'nr_dots': None,
                     }
                 columns_to_extract = ['area', 'length', 'normalized_internal_x', 'normalization_counts']
                 trap_data = pl.read_parquet(forks_filename, use_pyarrow=use_pyarrow, columns=columns_to_extract)
@@ -536,11 +538,13 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
                             pixel_size=pixel_size,
                             heatmap_threshold=heatmap_threshold)
 
+            nr_dots = longs.size
             return {
                 'heatmap_trap': heatmap_trap,
                 'mean_cell_lengths_trap': mean_cell_lengths_trap,
                 'position': position,
                 'trap_no': channel_no,
+                'nr_dots': nr_dots
                 #'extent': extent
             }
 

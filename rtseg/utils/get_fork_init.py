@@ -44,6 +44,21 @@ def read_all_fork_data_around_init(param):
             
         area_bins_around_init, lbins_around_init, heatmap_around_init, mean_cell_lengths_around_init, abins_inds_around_init, lbins_inds_around_init = slice_fork_plot_around_init(abins, lbins, heatmap, mean_cell_lengths, init_area, init_area_cv)
 
+        #Number of dots around initiation
+        amin_init = np.min(area_bins_around_init)
+        amax_init = np.max(area_bins_around_init)
+        lmin_init = np.min(lbins_around_init)
+        lmax_init = np.max(lbins_around_init)
+        ar_pix = areas * pixel_size**2
+        le_pix = lengths * pixel_size
+        lo_cent = longs - 0.5
+        len_long_rescaled = le_pix * lo_cent
+        inds_around_init = np.where(np.logical_and(np.logical_and(ar_pix >= amin_init, ar_pix <= amax_init), 
+                                                   np.logical_and(len_long_rescaled >= lmin_init, 
+                                                   len_long_rescaled <= lmax_init)))[0]
+        lo_init = lo_cent[inds_around_init]
+        nr_dots_init = lo_init.size
+
          #Flat heatmap
         flat_heatmap_init = heatmap_around_init.flatten()
 
@@ -63,6 +78,7 @@ def read_all_fork_data_around_init(param):
         heatmap_around_init_dims = heatmap_around_init.shape
         heatmap_around_init_pos_traps = np.zeros(shape=(heatmap_around_init_dims[0], heatmap_around_init_dims[1], nr_pos, nr_traps))
         flat_heatmap_around_init_pos_traps = np.zeros(shape=(heatmap_around_init_dims[0]*heatmap_around_init_dims[1], nr_pos, nr_traps))
+        all_traps_nr_dots = np.zeros(shape=(nr_pos, nr_traps))
 
         for (i, j) in (np.ndindex(nr_pos, nr_traps)):
 
@@ -91,6 +107,16 @@ def read_all_fork_data_around_init(param):
             heatmap_around_init_pos_traps[:,:,i,j] = heatmap_trap_init
             flat_heatmap_around_init_pos_traps[:,i,j] = flat_heatmap_trap_init
             
+            ar_pix_trap = areas_trap * pixel_size**2
+            le_pix_trap = lengths_trap * pixel_size
+            lo_cent_trap = longs_trap - 0.5
+            len_long_rescaled_trap = le_pix_trap * lo_cent_trap
+            inds_around_init_trap = np.where((ar_pix_trap >= amin_init) & (ar_pix_trap <= amax_init) & 
+                                                   (len_long_rescaled_trap >= lmin_init) & 
+                                                   (len_long_rescaled_trap <= lmax_init))[0]
+            lo_init_trap = lo_cent_trap[inds_around_init_trap]
+            nr_dots_init_trap = lo_init_trap.size
+            all_traps_nr_dots[i,j] = nr_dots_init_trap
 
         return {
 
@@ -99,7 +125,9 @@ def read_all_fork_data_around_init(param):
             'flat_heatmap_init': flat_heatmap_init,
             'flat_heatmap_around_init_pos_traps': flat_heatmap_around_init_pos_traps, 
             'init_area': init_area, 
-            'e_dists': e_dists
+            'e_dists': e_dists,
+            'nr_dots_init': nr_dots_init,
+            'all_Traps_nr_dots': nr_dots_init_trap
 
         }, moran_weight
         

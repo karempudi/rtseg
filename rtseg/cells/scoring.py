@@ -7,9 +7,7 @@ from scipy.fft import fft2, fftfreq
 
 
 def score_all_fork_plots(fork_data, moran_weights):
-#def score_all_fork_plots(heatmap_around_init, heatmap_around_init_pos_traps, 
- #                        flat_heatmap_init, flat_heatmap_init_around_init_pos_traps, 
-  #                       moran_weights, e_dists):
+
     heatmap_init = fork_data['heatmap_around_init']
     heatmaps_init_trap = fork_data['heatmap_around_init_pos_traps']
     flat_heatmap_init = fork_data['flat_heatmap_init']
@@ -24,8 +22,7 @@ def score_all_fork_plots(fork_data, moran_weights):
     ks_results = np.full((nr_pos, nr_traps, 2), np.nan)
     sobolevs = np.full((nr_pos, nr_traps), np.nan)
     energies = np.full((nr_pos, nr_traps), np.nan)
-    #print(nr_pos, nr_traps)
-    #print(np.ndindex(nr_pos, nr_traps))
+
     for (i, j) in (np.ndindex(nr_pos, nr_traps)):
         flat_trap_heatmap = flat_heatmaps_init_traps[:,i,j]
         trap_heatmap = heatmaps_init_trap[:,:,i,j]
