@@ -87,6 +87,7 @@ def read_all_fork_data_around_init(param):
             trap = trap_nrs[j] 
 
             # check if the trap parquet exists
+            print(f"Position: {pos} Trap: {trap}")
             filename = Path(param.Save.directory) / Path('Pos' + str(pos)) / Path('forks.parquet/trap=' + str(trap))
             if not filename.exists():
                 continue
@@ -102,6 +103,9 @@ def read_all_fork_data_around_init(param):
                                                                bin_scale=bin_scale, pixel_size=pixel_size,
                                                                heatmap_threshold=heatmap_threshold)
             
+            #print(f"Position: {pos} Trap: {trap} heatmap trap computed....")
+            if heatmap_trap is None:
+                continue
             heatmap_trap_init = heatmap_trap[np.ix_(abins_inds_around_init, lbins_inds_around_init)]
             flat_heatmap_trap_init = heatmap_trap_init.flatten()
             heatmap_around_init_pos_traps[:,:,i,j] = heatmap_trap_init

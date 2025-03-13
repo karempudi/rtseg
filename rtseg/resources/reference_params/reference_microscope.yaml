@@ -11,7 +11,7 @@ Post:
 
 Forkplots:
   pixel_size: 0.046
-  bin_scale: 20
+  bin_scale: 10
   heatmap_threshold: 0.99
   min_length: 0.44 
   arb_div_area: 2.5

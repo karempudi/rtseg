@@ -170,40 +170,47 @@ def slice_fork_plot_around_init(abins, lbins, heatmap, mean_cell_lengths, init_a
 def fast_generate_fork_plot(areas, lengths, longs, counts, bin_scale=20, 
             pixel_size=0.046, heatmap_threshold=0.99, abins=None, lbins=None, ainds = None):
     
-    areas = areas * (pixel_size ** 2)
-    lengths = lengths * pixel_size
-    longs = longs - 0.5
-    
-    if abins is None and lbins is None:
-        abins, lbins, (amin, amax), ainds = fast_abins_lbins(areas, lengths, longs, bin_scale=bin_scale)
-    else:
-        amin = np.quantile(areas, 0.005)
-        amax = np.quantile(areas, 0.98)
-        ainds = np.where(np.logical_and(areas >= amin, areas <= amax))[0]
-    #lnrbins = len(lbins)
-    #anrbins = lnrbins
-    
-    areas_filtered = areas[ainds]
-    counts_filtered = counts[ainds]
-    longs_filtered = longs[ainds]
-    lengths_filtered = lengths[ainds]
+    try:
+        areas = areas * (pixel_size ** 2)
+        lengths = lengths * pixel_size
+        longs = longs - 0.5
+        
+        if abins is None and lbins is None:
+            abins, lbins, (amin, amax), ainds = fast_abins_lbins(areas, lengths, longs, bin_scale=bin_scale)
+        else:
+            amin = np.quantile(areas, 0.005)
+            amax = np.quantile(areas, 0.98)
+            ainds = np.where(np.logical_and(areas >= amin, areas <= amax))[0]
+        #lnrbins = len(lbins)
+        #anrbins = lnrbins
+ 
+        y = (abins[:-1] + abins[1:]) / 2
+        x = lbins
+               
+        #print(f"Areas {areas.shape}")
+        areas_filtered = areas[ainds]
+        counts_filtered = counts[ainds]
+        longs_filtered = longs[ainds]
+        lengths_filtered = lengths[ainds]
+        #print(f"Areas filtered {areas_filtered.shape}")
+        heatmap, _, _ = np.histogram2d(areas_filtered, longs_filtered * lengths_filtered, bins=(abins, lbins))
 
-    heatmap, _, _ = np.histogram2d(areas_filtered, longs_filtered * lengths_filtered, bins=(abins, lbins))
+        #print(f"heatmap {heatmap.shape}")
+        normFactor, _, _ = binned_statistic(areas_filtered, 1.0/counts_filtered, statistic='sum', bins=abins)
+        #print(f"normFactor {normFactor.shape}")
 
-    normFactor, _, _ = binned_statistic(areas_filtered, 1.0/counts_filtered, statistic='sum', bins=abins)
+        heatmap = heatmap/normFactor[:, np.newaxis]
+        thresh = np.quantile(heatmap, heatmap_threshold)
+        heatmap[heatmap > thresh] = thresh
 
-    heatmap = heatmap/normFactor[:, np.newaxis]
-    thresh = np.quantile(heatmap, heatmap_threshold)
-    heatmap[heatmap > thresh] = thresh
+        heatmap[np.isnan(heatmap)] = 0.0
 
-    heatmap[np.isnan(heatmap)] = 0.0
+        mean_cell_lengths, _, _ = binned_statistic(areas_filtered, lengths_filtered, statistic='mean', bins=abins)
 
-    mean_cell_lengths, _, _ = binned_statistic(areas_filtered, lengths_filtered, statistic='mean', bins=abins)
-
-    y = (abins[:-1] + abins[1:]) / 2
-    x = lbins
-    
-    return heatmap, mean_cell_lengths, abins, lbins, (x, y)
+        return heatmap, mean_cell_lengths, abins, lbins, (x, y)
+    except Exception as e:
+        print(f"Failed to computed fork plot due to {e}")
+        return None, 0.0, abins, lbins, (x, y)
 
 
 def fast_abins_lbins(areas, lengths, longs, bin_scale=20):
