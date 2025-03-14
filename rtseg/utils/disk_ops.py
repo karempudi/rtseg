@@ -426,7 +426,6 @@ def read_files(read_type, param, position, channel_no, max_imgs=20):
             longs = data['normalized_internal_x'].to_numpy()
             counts = data['normalization_counts'].to_numpy()
             nr_dots = longs.size
-
             bin_scale = param.Forkplots.bin_scale
             heatmap_threshold = param.Forkplots.heatmap_threshold
             pixel_size = param.Forkplots.pixel_size

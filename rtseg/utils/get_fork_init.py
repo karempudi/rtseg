@@ -87,7 +87,6 @@ def read_all_fork_data_around_init(param):
             trap = trap_nrs[j] 
 
             # check if the trap parquet exists
-            print(f"Position: {pos} Trap: {trap}")
             filename = Path(param.Save.directory) / Path('Pos' + str(pos)) / Path('forks.parquet/trap=' + str(trap))
             if not filename.exists():
                 continue
@@ -131,7 +130,7 @@ def read_all_fork_data_around_init(param):
             'init_area': init_area, 
             'e_dists': e_dists,
             'nr_dots_init': nr_dots_init,
-            'all_Traps_nr_dots': nr_dots_init_trap
+            'all_Traps_nr_dots': all_traps_nr_dots
 
         }, moran_weight
         
